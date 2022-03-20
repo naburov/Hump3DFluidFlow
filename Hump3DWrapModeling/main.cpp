@@ -1,6 +1,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>  
+#include <omp.h>
 
 #include "consts.h"
 #include "export_functions.h"
@@ -8,9 +9,12 @@
 #include <vector>
 #include <algorithm>
 
+
 int main() {
+	omp_set_num_threads(8);
+
 	const int dims[] = { N, M, K };
-	const double deltas[] = { (xi1_max - xi1_min) / N, (theta_max - theta_min) / M, (xi2_max - xi2_min) / K };
+	const double deltas[] = { (xi1_max - xi1_min) / (N - 1), (theta_max - theta_min) / (M - 1), (xi2_max - xi2_min) / (K - 1) };
 	const double time_step = static_cast<double>(tmax) / T;
 
 	// initalize U
@@ -67,6 +71,7 @@ int main() {
 			}
 		}
 	}
+
 	//std::cout << "w max " << *std::max_element(s.begin(), s.end()) << std::endl;
 	double*** v = V(w, u, dims, deltas);
 	double*** h = H(u, dims, deltas);
@@ -77,15 +82,26 @@ int main() {
 	int it_count = 0;
 	std::stringstream ss;
 	const std::string filename = "./out/output";
+	//print_array(v, dims);
+	print_min_max_values(u, "u", dims);
+	print_min_max_values(v, "v", dims);
+	print_min_max_values(w, "w", dims);
+	print_min_max_values(h, "h", dims);
 
+	std::cout << "OpenMP threads: " << omp_get_max_threads() << std::endl;
 	do {
+		//std::system("cls");
+		std::cout << "-----------------------------------------------" << std::endl;
 		std::cout << " Starting iteration " << it_count++ << std::endl;
 		double*** h_next = H(h, w, v, dims, deltas, time_step);
 		double*** u_next = U(h_next, dims, deltas);
 		double*** w_next = W(h_next, w, v, dims, deltas, time_step);
 		double*** v_next = V(w_next, u_next, dims, deltas);
-		//std::cout << "-----------------------------------------------" << std::endl;
-		//print_array(u_next, dims);
+
+		print_min_max_values(u_next, "u", dims);
+		print_min_max_values(v_next, "v", dims);
+		print_min_max_values(w_next, "w", dims);
+		print_min_max_values(h_next, "h", dims);
 
 		stop = max_norm(u, u_next, dims) < eps && max_norm(v, v_next, dims) < eps && max_norm(w, w_next, dims) < eps;
 		double*** old_u = u;
@@ -108,11 +124,11 @@ int main() {
 		delete[] old_w;
 		delete[] old_h;
 
-		//if ((it_count - 1) % save_every == 0) {
+		if ((it_count - 1) % save_every == 0) {
 			ss.str(std::string());
-			ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vti";
+			ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
 			export_vector_field(ss.str(), u, v, w, deltas);
-		//}
+		}
 	} while (!stop);
 
 	return 0;

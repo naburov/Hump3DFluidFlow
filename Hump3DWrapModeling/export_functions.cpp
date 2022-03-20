@@ -3,24 +3,27 @@
 
 #include <iostream>
 #include <fstream>
-#include <vtkDataSet.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
+
 #include <vtkCellArray.h>
-#include <vtkDoubleArray.h>
-#include <vtkArrowSource.h>
-#include <vtkImageData.h>
-#include <vtkPointData.h>
-#include <vtkPoints.h>
-#include <vtkNamedColors.h>
 #include <vtkNew.h>
-#include <vtkProperty.h>
-#include <vtkXMLImageDataWriter.h>
-#include <vtkXMLImageDataReader.h>
-#include <vtkImageData.h>
+#include <vtkPoints.h>
+#include <vtkStructuredGrid.h>
+#include <vtkXMLStructuredGridWriter.h>
+#include <vtkPointData.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataWriter.h>
+#include <vtkSmartPointer.h>
+#include <vtkVertex.h>
+#include <vtkDoubleArray.h>
+#include <vtkDataSet.h>
+#include <vtkDataArray.h>
+#include <vtkCell.h>
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
 
 #include "Consts.h"
 #include "calculating_functions.h"
+#include "export_functions.h"
 
 void print_array(double*** arr, const int(&dims)[3]) {
 	for (int i = 0; i < dims[0]; ++i)
@@ -39,57 +42,58 @@ void dispose_array(double*** arr, const int(&dims)[3]) {
 	{
 		for (int j = 0; j < dims[1]; ++j)
 		{
-				delete[] arr[i][j];
+			delete[] arr[i][j];
 		}
 		delete[] arr[i];
 	}
 }
 
+void print_min_max_values(double*** arr, std::string name, const int(&dims)[3])
+{
+	std::vector<double> s;
+	for (int i = 0; i < dims[0]; ++i)
+	{
+		for (int j = 0; j < dims[1]; ++j)
+		{
+			for (size_t k = 0; k < dims[2]; k++)
+			{
+				s.push_back(arr[i][j][k]);
+			}
+		}
+	}
+	std::cout << " " + name + " max " << *std::max_element(s.begin(), s.end()) << " " + name + " min " << *std::min_element(s.begin(), s.end()) << std::endl;
+}
+
 void export_vector_field(const std::string& filename, double*** U, double*** V, double*** W, const double(&deltas)[3])
 {
-	double p[3], v[3];
-	vtkNew<vtkImageData> image;
-	image->SetDimensions(N, M, K);
-	image->AllocateScalars(VTK_FLOAT, 3);
+	vtkNew<vtkStructuredGrid> sgrid;
+	int n = N * M * K;
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkDoubleArray> u = vtkSmartPointer<vtkDoubleArray>::New();
+	u->SetName("u");
+	u->SetNumberOfComponents(3);
 
-	for (size_t x = 0; x < N; x++)
-	{
-		for (size_t z = 0; z < K; z++)
-		{
-			for (size_t y = 0; y < M; y++)
-			{
-				auto pixel = static_cast<float*>(image->GetScalarPointer(x, y, z));
-				pixel[0] = 0.0f;
-				pixel[1] = 0.0f;
-				pixel[2] = 0.0f;
+	int id = 0;
+	for (int i = 0; i < N; ++i) {
+		double xi1 = xi1_min + deltas[0] * i;
+		for (size_t k = 0; k < K; k++) {
+			double xi2 = xi2_min + deltas[2] * k;
+			for (size_t j = 0; j < M; j++) {
+				double theta = theta_min + deltas[1] * j;
+				points->InsertNextPoint(xi1, theta + mu(xi1, xi2), xi2);
+				u->InsertNextTuple3(U[i][j][k], V[i][j][k], W[i][j][k]);
+				id++;
 			}
 		}
 	}
+	//std::cout << id << std::endl;
+	sgrid->SetDimensions(N, M, K);
+	sgrid->GetPointData()->SetVectors(u);
+	sgrid->SetPoints(points);
 
-	for (size_t x = 0; x < N; x++)
-	{
-		for (size_t z = 0; z < K; z++)
-		{
-			double xi1 = x * deltas[0] + xi1_min;
-			double xi2 = z * deltas[2] + xi2_min;
-			for (size_t y = 0; theta_min + deltas[1] * y < theta_max - mu(xi1, xi2); y++)
-			{
-				auto y_shifted = y + static_cast<size_t>(mu(xi1, xi2) / deltas[1]);
-				if (y_shifted > K - 1)
-					continue;
-				auto pixel = static_cast<float*>(image->GetScalarPointer(x, y_shifted, z));
-				pixel[0] = (float)(U[x][y_shifted][z]);
-				pixel[1] = (float)(V[x][y_shifted][z]);
-				pixel[2] = (float)(W[x][y_shifted][z]);
-			}
-		}
-	}
-
-	image->GetPointData()->SetActiveVectors(
-		image->GetPointData()->GetScalars()->GetName());
-
-	vtkNew<vtkXMLImageDataWriter> writer;
+	vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+		vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
 	writer->SetFileName(filename.c_str());
-	writer->SetInputData(image);
+	writer->SetInputData(sgrid);
 	writer->Write();
 }
