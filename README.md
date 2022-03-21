@@ -1,4 +1,4 @@
-# Hump3FLuidFlow
+# Hump3FluidFlow
 
 This is a repository for the fluid dynamics project of my first term during my master's degree in Higher School of Economics, Moscow.
 
