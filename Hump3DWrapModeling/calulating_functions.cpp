@@ -8,6 +8,10 @@
 #include "consts.h"
 #include <algorithm>
 #include <omp.h>
+#include <cstdint>
+#include <algorithm>
+#include <iostream>
+#include <iomanip>
 // 0 - x dimension in x
 // 1 - y dimension in y
 // 2 - z dimension in z
@@ -49,17 +53,23 @@ double*** H(double*** U, const int(&dims)[3], const double(&deltas)[3]) {
 		}
 	}
 
-	for (size_t i = 0; i < dims[0]; i++)
+	double xi2 = xi2_min;
+	for (size_t i = 0; i < dims[0]; i++) {
 		for (size_t j = 0; j < dims[1]; j++) {
-			next[i][j][dims[2] - 1] = 0.0;			// H| \xi1,2->\infty = 0
-			next[i][j][0] = 0.0;					// H| \xi1,2->-\infty = 0
+			double xi1 = xi1_min + i * deltas[0];
+			next[i][j][dims[2] - 1] = c * mu(xi1, xi2);			// H| \xi1,2->\infty = 0
+			next[i][j][0] = c * mu(xi1, xi2);					// H| \xi1,2->-\infty = 0
 		}
+	}
 
-	for (size_t k = 0; k < dims[2]; k++)
+	double xi1 = xi1_min;
+	for (size_t k = 0; k < dims[2]; k++) {
 		for (size_t j = 0; j < dims[1]; j++) {
-			next[dims[0] - 1][j][k] = 0.0;			// H| \xi1,2->\infty = 0
-			next[0][j][k] = 0.0;					// H| \xi1,2->-\infty = 0
+			double xi2 = xi2_min + k * deltas[2];
+			next[dims[0] - 1][j][k] = c * mu(xi1, xi2);			// H| \xi1,2->\infty = 0
+			next[0][j][k] = c * mu(xi1, xi2);					// H| \xi1,2->-\infty = 0
 		}
+	}
 	return next;
 }
 
@@ -72,9 +82,9 @@ double*** H(double*** prevH, double*** prevW, double*** prevV, const int(&dims)[
 	}
 
 #pragma omp parallel for
-	for (int i = 0; i < dims[0]; i++)
-		for (int j = 0; j < dims[1]; j++)
-			for (int k = 0; k < dims[2]; k++) {
+	for (int i = 0; i < dims[0] - 1; i++)
+		for (int j = 0; j < dims[1] - 1; j++)
+			for (int k = 0; k < dims[2] - 1; k++) {
 				double xi1 = i * deltas[0] + xi1_min;
 				double xi2 = k * deltas[2] + xi2_min;
 				double theta = theta_min + j * deltas[1];
@@ -133,9 +143,9 @@ double*** W(double*** prevH, double*** prevW, double*** prevV, const int(&dims)[
 	}
 
 #pragma omp parallel for
-	for (int i = 0; i < dims[0]; i++)
-		for (int j = 0; j < dims[1]; j++)
-			for (int k = 0; k < dims[2]; k++) {
+	for (int i = 0; i < dims[0] - 1; i++)
+		for (int j = 0; j < dims[1] - 1; j++)
+			for (int k = 0; k < dims[2] - 1; k++) {
 				double xi1 = i * deltas[0] + xi1_min;
 				double xi2 = k * deltas[2] + xi2_min;
 				double theta = theta_min + j * deltas[1];
@@ -229,7 +239,7 @@ double integrate(const size_t& j, const double(&deltas)[3], double*** U, const s
 	double sum = 0.0;
 	for (int m = 1; m < j; m++) {
 		int id1 = m;
-		int id2 = m + 1;
+		int id2 = m - 1;
 		double theta1 = theta_min + id2 * deltas[1];
 		double theta2 = theta_min + id1 * deltas[1];
 		double f1 =
@@ -250,7 +260,7 @@ double integrate(const size_t& j, const double(&deltas)[3], double*** U, const s
 		//	std::cout << "i=" << i << " m=" << m <<" " << "du/dxi1= " << derivative(U, 0, i, id1, k, deltas[0], N) << " " << derivative(U, 0, i + 1, id1, k, deltas[0], N) << std::endl;
 		//if ((i == 50) && (j == 28))
 		//	std::cout << "i=" << i << " m=" << m << " " << "du/dxi1= " << derivative(U, 0, i, id1, k, deltas[0], N) << " " << derivative(U, 0, i + 1, id1, k, deltas[0], N) << std::endl;
-		sum += 0.5 * (theta2 - theta1) * (f1 + f2);
+		sum -= 0.5 * (theta2 - theta1) * (f1 + f2);
 	}
 	return sum;
 }
@@ -268,7 +278,7 @@ double*** V(double*** W, double*** U, const int(&dims)[3], const double(&deltas)
 #pragma omp parallel for
 	for (int i = 1; i < dims[0] - 1; i++) {
 		for (int k = 1; k < dims[2] - 1; k++)
-			for (int j = 1; j < dims[1] - 1; j++) {
+			for (int j = 0; j < dims[1] - 2; j++) {
 				// integrating cycle
 				double xi1 = i * deltas[0] + xi1_min;
 				double xi2 = k * deltas[2] + xi2_min;
@@ -315,40 +325,54 @@ double mu_derivative(double xi1, double xi2, int dim) {
 }
 
 double second_derivative(double*** arr, int dim, int i, int j, int k, double delta, int size) {
-	int ids[] = { i, j, k };
-	ids[dim] -= 1;
-	bool is_border = ids[dim] < 0 || i >= N || j >= M || k >= K;
-	double derivative = 0;
-	if (is_border)
-		derivative = -2 * arr[i][j][k] + arr[i][j][k];
-	else
-		derivative = -2 * arr[i][j][k] + arr[ids[0]][ids[1]][ids[2]];
-	ids[dim] += 2;
+	int lids[] = { i, j, k };
+	lids[dim] -= 1;
+	lids[0] = std::max(0, std::min(lids[0], N - 1));
+	lids[1] = std::max(0, std::min(lids[1], M - 1));
+	lids[2] = std::max(0, std::min(lids[2], K - 1));
+	auto derivative = -2 * arr[i][j][k];
+	derivative += arr[lids[0]][lids[1]][lids[2]];
 
-	is_border = ids[dim] >= size || i >= N || j >= M || k >= K;
-	if (is_border)
-		return (derivative + arr[i][j][k]) / (delta * delta);
-	else
-		return (derivative + arr[ids[0]][ids[1]][ids[2]]) / (delta * delta);
+	int rids[] = { i, j, k };
+	rids[dim] += 1;
+	rids[0] = std::max(0, std::min(rids[0], N - 1));
+	rids[1] = std::max(0, std::min(rids[1], M - 1));
+	rids[2] = std::max(0, std::min(rids[2], K - 1));
+
+	return (derivative + arr[lids[0]][lids[1]][lids[2]]) / (delta * delta);
 }
 
 double central_derivative(double*** arr, int dim, int i, int j, int k, double delta, int size) {
 	int ids[] = { i, j, k };
 	ids[dim] -= 1;
+	ids[0] = std::max(0, std::min(ids[0], N - 1));
+	ids[1] = std::max(0, std::min(ids[1], M - 1));
+	ids[2] = std::max(0, std::min(ids[2], K - 1));
 	double derivative = -arr[ids[0]][ids[1]][ids[2]];
-	ids[dim] += 2;
-	return (derivative + arr[ids[0]][ids[1]][ids[2]]) / (delta * 2);
+
+	int lids[] = { i, j, k };
+	lids[dim] += 1;
+	lids[0] = std::max(0, std::min(lids[0], N - 1));
+	lids[1] = std::max(0, std::min(lids[1], M - 1));
+	lids[2] = std::max(0, std::min(lids[2], K - 1));
+
+
+	return (derivative + arr[lids[0]][lids[1]][lids[2]]) / (delta * 2);
 }
 
 double derivative(double*** arr, int dim, int i, int j, int k, double delta, int size) {
-	int ids[] = { i, j, k };
-	ids[dim] -= 1;
+	int lids[] = { i, j, k };
+	lids[dim] -= 1;
 
-	bool is_border = ids[dim] < 0 || i >= N || j >= M || k >= K;
-	if (is_border)
-		return 0.0;
+	lids[0] = std::max(0, std::min(lids[0], N - 1));
+	lids[1] = std::max(0, std::min(lids[1], M - 1));
+	lids[2] = std::max(0, std::min(lids[2], K - 1));
 
-	return (arr[i][j][k] - arr[ids[0]][ids[1]][ids[2]]) / delta;
+	i = std::max(0, std::min(lids[0], N - 1));
+	j = std::max(0, std::min(lids[1], M - 1));
+	k = std::max(0, std::min(lids[2], K - 1));
+
+	return (arr[i][j][k] - arr[lids[0]][lids[1]][lids[2]]) / delta;
 }
 
 double inline relaxed_derivative(double a, double derivative_left, double derivative_right) {

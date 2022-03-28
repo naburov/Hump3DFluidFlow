@@ -62,10 +62,17 @@ int main() {
 	s.clear();
 	for (size_t i = 0; i < dims[0]; i++) {
 		double xi1 = i * deltas[0] + xi1_min;
-		for (size_t k = 0; k < dims[2]; k++) {
-			double xi2 = k * deltas[2] + xi2_min;
-			for (size_t j = 0; j < dims[1]; j++) {
-				double theta = theta_min + j * deltas[1];
+		for (size_t j = 0; j < dims[1]; j++) {
+			double theta = theta_min + j * deltas[1];
+			int k = 0;
+			for (k = 0; xi2_min + deltas[2] * (double)k < 0.0; k++) {
+				double xi2 = k * deltas[2] + xi2_min;
+				w[i][j][k] = -mu(xi1, xi2) * theta / (1 + theta * theta);
+				s.push_back(w[i][j][k]);
+			}
+
+			for (k; k < dims[2]; k++) {
+				double xi2 = k * deltas[2] + xi2_min;
 				w[i][j][k] = mu(xi1, xi2) * theta / (1 + theta * theta);
 				s.push_back(w[i][j][k]);
 			}
@@ -88,11 +95,16 @@ int main() {
 	print_min_max_values(w, "w", dims);
 	print_min_max_values(h, "h", dims);
 
+	ss.str(std::string());
+	ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
+	export_vector_field(ss.str(), u, v, w, deltas);
+
 	std::cout << "OpenMP threads: " << omp_get_max_threads() << std::endl;
 	do {
 		//std::system("cls");
 		std::cout << "-----------------------------------------------" << std::endl;
 		std::cout << " Starting iteration " << it_count++ << std::endl;
+
 		double*** h_next = H(h, w, v, dims, deltas, time_step);
 		double*** u_next = U(h_next, dims, deltas);
 		double*** w_next = W(h_next, w, v, dims, deltas, time_step);
@@ -124,7 +136,7 @@ int main() {
 		delete[] old_w;
 		delete[] old_h;
 
-		if ((it_count - 1) % save_every == 0) {
+		if (it_count % save_every == 0) {
 			ss.str(std::string());
 			ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
 			export_vector_field(ss.str(), u, v, w, deltas);
