@@ -64,6 +64,33 @@ void print_min_max_values(double*** arr, std::string name, const int(&dims)[3])
 	std::cout << " " + name + " max " << *std::max_element(s.begin(), s.end()) << " " + name + " min " << *std::min_element(s.begin(), s.end()) << std::endl;
 }
 
+void export_grid(const std::string& filename, const double(&deltas)[3]) {
+	vtkNew<vtkStructuredGrid> sgrid;
+	int n = N * K;
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+
+	int id = 0;
+	for (int i = 0; i < N; ++i) {
+		double xi1 = xi1_min + deltas[0] * i;
+		for (size_t k = 0; k < K; k++) {
+			double xi2 = xi2_min + deltas[2] * k;
+			double theta = theta_min;
+			points->InsertNextPoint(xi1, theta + mu(xi1, xi2), xi2);
+			id++;
+
+		}
+	}
+	//std::cout << id << std::endl;
+	sgrid->SetDimensions(N, 1, K);
+	sgrid->SetPoints(points);
+
+	vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+		vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+	writer->SetFileName(filename.c_str());
+	writer->SetInputData(sgrid);
+	writer->Write();
+}
+
 void export_vector_field(const std::string& filename, double*** U, double*** V, double*** W, const double(&deltas)[3])
 {
 	vtkNew<vtkStructuredGrid> sgrid;

@@ -26,3 +26,4 @@ const double alpha = 0.25;
 const double beta = 0.25;
 
 const int save_every = 200;
+const int print_every = 50;

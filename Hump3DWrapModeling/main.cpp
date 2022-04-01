@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>  
@@ -8,7 +10,8 @@
 #include "calculating_functions.h"
 #include <vector>
 #include <algorithm>
-
+#include <direct.h>
+#include <filesystem>
 
 int main() {
 	omp_set_num_threads(8);
@@ -87,8 +90,19 @@ int main() {
 	// if memory will leak - add delete
 	bool stop = false;
 	int it_count = 0;
+
+	auto t = std::time(nullptr);
+	auto tm = *std::localtime(&t);
+
+	std::ostringstream oss;
+	oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+	auto str = oss.str();
+
 	std::stringstream ss;
-	const std::string filename = "./out/output";
+	const std::string filename = "./out " + str + "/output";
+
+	_mkdir(("./out " + str).c_str());
+
 	//print_array(v, dims);
 	print_min_max_values(u, "u", dims);
 	print_min_max_values(v, "v", dims);
@@ -99,21 +113,28 @@ int main() {
 	ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
 	export_vector_field(ss.str(), u, v, w, deltas);
 
+	ss.str(std::string());
+	ss << filename << "_grid.vts";
+	export_grid(ss.str(), deltas);
+
 	std::cout << "OpenMP threads: " << omp_get_max_threads() << std::endl;
 	do {
 		//std::system("cls");
-		std::cout << "-----------------------------------------------" << std::endl;
-		std::cout << " Starting iteration " << it_count++ << std::endl;
+
 
 		double*** h_next = H(h, w, v, dims, deltas, time_step);
 		double*** u_next = U(h_next, dims, deltas);
 		double*** w_next = W(h_next, w, v, dims, deltas, time_step);
 		double*** v_next = V(w_next, u_next, dims, deltas);
 
-		print_min_max_values(u_next, "u", dims);
-		print_min_max_values(v_next, "v", dims);
-		print_min_max_values(w_next, "w", dims);
-		print_min_max_values(h_next, "h", dims);
+		if (it_count++ % print_every == 0) {
+			std::cout << "-----------------------------------------------" << std::endl;
+			std::cout << " Starting iteration " << it_count << std::endl;
+			print_min_max_values(u_next, "u", dims);
+			print_min_max_values(v_next, "v", dims);
+			print_min_max_values(w_next, "w", dims);
+			print_min_max_values(h_next, "h", dims);
+		}
 
 		stop = max_norm(u, u_next, dims) < eps && max_norm(v, v_next, dims) < eps && max_norm(w, w_next, dims) < eps;
 		double*** old_u = u;
