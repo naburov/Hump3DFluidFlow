@@ -161,6 +161,10 @@ int main() {
 			ss.str(std::string());
 			ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
 			export_vector_field(ss.str(), u, v, w, deltas);
+
+			ss.str(std::string());
+			ss << filename << "_central_slice_" << std::setfill('0') << std::setw(5) << it_count  << ".vts";
+			export_central_slice(ss.str(), u, v, w, deltas);
 		}
 	} while (!stop);
 

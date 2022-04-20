@@ -91,6 +91,40 @@ void export_grid(const std::string& filename, const double(&deltas)[3]) {
 	writer->Write();
 }
 
+void export_central_slice(const std::string& filename, double*** U, double*** V, double*** W, const double(&deltas)[3])
+{
+	vtkNew<vtkStructuredGrid> sgrid;
+	int n = N * M * 1;
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkDoubleArray> u = vtkSmartPointer<vtkDoubleArray>::New();
+	u->SetName("u");
+	u->SetNumberOfComponents(3);
+
+	int id = 0;
+	int k = K / 2 + 1;
+	for (int i = 0; i < N; ++i) {
+		double xi1 = xi1_min + deltas[0] * i;
+		double xi2 = xi2_min + deltas[2] * k;
+		for (size_t j = 0; j < M; j++) {
+			double theta = theta_min + deltas[1] * j;
+			points->InsertNextPoint(xi1, theta + mu(xi1, xi2), xi2);
+			u->InsertNextTuple3(U[i][j][k], V[i][j][k], W[i][j][k]);
+			id++;
+		}
+
+	}
+	//std::cout << id << std::endl;
+	sgrid->SetDimensions(N, M, 1);
+	sgrid->GetPointData()->SetVectors(u);
+	sgrid->SetPoints(points);
+
+	vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+		vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+	writer->SetFileName(filename.c_str());
+	writer->SetInputData(sgrid);
+	writer->Write();
+}
+
 void export_vector_field(const std::string& filename, double*** U, double*** V, double*** W, const double(&deltas)[3])
 {
 	vtkNew<vtkStructuredGrid> sgrid;

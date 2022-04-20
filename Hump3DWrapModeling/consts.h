@@ -9,7 +9,7 @@ const int T = 4000;
 
 const double x0 = 5.0;
 const double z0 = 5.0;
-const double eps = 0.00001;
+const double eps = 0.0000001;
 const double f_second = 0.33;
 const double c = f_second / std::sqrt(x0);
 
