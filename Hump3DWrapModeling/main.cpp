@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>  
 #include <omp.h>
+#include <chrono>
 
 #include "consts.h"
 #include "export_functions.h"
@@ -162,9 +163,44 @@ int main() {
 			ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
 			export_vector_field(ss.str(), u, v, w, deltas);
 
+			std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 			ss.str(std::string());
-			ss << filename << "_central_slice_" << std::setfill('0') << std::setw(5) << it_count  << ".vts";
+			ss << filename << "_central_slice_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
 			export_central_slice(ss.str(), u, v, w, deltas);
+			std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+			std::cout << "Time difference vtk " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << std::endl;
+
+			ss.str(std::string());
+			ss << filename << "_u_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), u, deltas, 0);
+
+			ss.str(std::string());
+			ss << filename << "_u_theta1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), u, deltas, 1);
+
+			ss.str(std::string());
+			ss << filename << "_u_theta_max-1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), u, deltas, theta_max - 1);
+
+			ss.str(std::string());
+			ss << filename << "_u_theta_max_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), u, deltas, theta_max);
+
+			ss.str(std::string());
+			ss << filename << "_v_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), v, deltas, 0);
+
+			ss.str(std::string());
+			ss << filename << "_v_theta1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+			export_single_line(ss.str(), v, deltas, 1);
+
+
+			begin = std::chrono::steady_clock::now();
+			ss.str(std::string());
+			ss << filename << "_bin_vector_field" << std::setfill('0') << std::setw(5) << it_count << ".vtk";
+			output_vtk_binary_2d(ss.str(), u, v, it_count, deltas);
+			end = std::chrono::steady_clock::now();
+			std::cout << "Time difference binary " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << std::endl;
 		}
 	} while (!stop);
 
