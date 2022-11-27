@@ -1,29 +1,20 @@
 #include <iostream>
 #include <string>
 
-#include <iostream>
-#include <fstream>
-
 #include <vtkCellArray.h>
 #include <vtkNew.h>
 #include <vtkPoints.h>
 #include <vtkStructuredGrid.h>
 #include <vtkXMLStructuredGridWriter.h>
 #include <vtkPointData.h>
-#include <vtkPolyData.h>
-#include <vtkPolyDataWriter.h>
 #include <vtkSmartPointer.h>
 #include <vtkVertex.h>
 #include <vtkDoubleArray.h>
-#include <vtkDataSet.h>
-#include <vtkDataArray.h>
-#include <vtkCell.h>
-#include <vtkCellArray.h>
 #include <vtkCellData.h>
 
-#include "Consts.h"
 #include "calculating_functions.h"
 #include "export_functions.h"
+#include "consts.h"
 
 void print_array(double*** arr, const int(&dims)[3]) {
 	for (int i = 0; i < dims[0]; ++i)
