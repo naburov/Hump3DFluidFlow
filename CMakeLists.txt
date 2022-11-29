@@ -34,7 +34,7 @@ add_executable(Hump3DFluidFlow
         Hump3DWrapModeling/consts.h
         Hump3DWrapModeling/export_functions.cpp
         Hump3DWrapModeling/export_functions.h
-        Hump3DWrapModeling/main.cpp Hump3DWrapModeling/Config.cpp Hump3DWrapModeling/Config.h)
+        Hump3DWrapModeling/main.cpp Hump3DWrapModeling/Config.cpp Hump3DWrapModeling/Config.h Hump3DWrapModeling/SimulationParams.h)
 
 target_link_libraries(Hump3DFluidFlow PRIVATE ${VTK_LIBRARIES})
 

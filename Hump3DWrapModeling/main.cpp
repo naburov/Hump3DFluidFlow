@@ -10,12 +10,15 @@
 #include "export_functions.h"
 #include "calculating_functions.h"
 #include "Config.h"
+#include "SimulationParams.h"
 
 #include <vector>
 #include <algorithm>
 
 #ifdef __APPLE__
+
 #include <sys/stat.h>
+
 #elif _WIN32
 #include "direct.h"
 #elif __linux__
@@ -29,13 +32,36 @@ int main() {
     auto cnf = Config(cnf_path);
     cnf.print();
 
-    const int dims[] = {N, M, K};
-    const double deltas[] = {(xi1_max - xi1_min) / (N - 1), (theta_max - theta_min) / (M - 1),
-                             (xi2_max - xi2_min) / (K - 1)};
-    const double time_step = static_cast<double>(tmax) / T;
+    auto t_dims = cnf.get_grid_dimensions();
+    const int dims[] = {t_dims[0], t_dims[1], t_dims[2]};
+
+    auto t_sizes = cnf.get_grid_sizes();
+
+
+    const double time_step = cnf.get_timestep();
+
+    auto func_params = cnf.get_function_params();
+
+    SimulationParams sim_params = {
+            {t_dims[0], t_dims[1], t_dims[2]},
+            {t_sizes[1], t_sizes[5], t_sizes[3]},
+            {
+            (t_sizes[0] - t_sizes[1]) / (t_dims[0]),
+            (t_sizes[4] - t_sizes[5]) / (t_dims[1]),
+            (t_sizes[2] - t_sizes[3]) / (t_dims[2])
+            },
+            func_params[0],
+            func_params[1],
+            cnf.get_hump_height(),
+            time_step
+    };
+
+    auto t_params = cnf.get_saving_params();
+    auto save_every = t_params[0];
+    auto print_every = t_params[1];
 
     // initalize U
-    double ***u = new double **[dims[0]];
+    auto ***u = new double **[dims[0]];
     for (size_t i = 0; i < dims[0]; i++) {
         u[i] = new double *[dims[1]];
         for (size_t j = 0; j < dims[1]; j++)
@@ -46,18 +72,18 @@ int main() {
     std::vector<double> s;
     for (size_t i = 0; i < dims[0]; i++)
         for (size_t k = 0; k < dims[2]; k++) {
-            double xi1 = i * deltas[0] + xi1_min;
-            double xi2 = k * deltas[2] + xi2_min;
-            int j = 0;
-            for (j = 0; theta_min + deltas[1] * (double) j < 5.0; j++) {
-                double theta = theta_min + j * deltas[1];
-                u[i][j][k] = f_second * theta * (1 + 0.2 * mu(xi1, xi2));
+            auto xi1 = i * sim_params.deltas[0] + t_sizes[1];
+            auto xi2 = k * sim_params.deltas[2] + t_sizes[3];
+            auto j = 0;
+            for (j = 0; t_sizes[5] + sim_params.deltas[1] * (double) j < 5.0; j++) {
+                auto theta = t_sizes[5] + j * sim_params.deltas[1];
+                u[i][j][k] = f_second * theta * (1 + 0.2 * mu(xi1, xi2, sim_params));
                 s.push_back(u[i][j][k]);
             }
 
             for (j; j < dims[1]; j++) {
-                double theta = theta_min + j * deltas[1];
-                u[i][j][k] = f_second * (theta + mu(xi1, xi2));
+                auto theta = t_sizes[5] + j * sim_params.deltas[1];
+                u[i][j][k] = f_second * (theta + mu(xi1, xi2, sim_params));
                 s.push_back(u[i][j][k]);
             }
 
@@ -65,7 +91,7 @@ int main() {
     //std::cout << "u max " << *std::max_element(s.begin(), s.end()) << std::endl;
 
     // initialize W
-    double ***w = new double **[dims[0]];
+    auto ***w = new double **[dims[0]];
     for (size_t i = 0; i < dims[0]; i++) {
         w[i] = new double *[dims[1]];
         for (size_t j = 0; j < dims[1]; j++) {
@@ -77,32 +103,32 @@ int main() {
 
     s.clear();
     for (size_t i = 0; i < dims[0]; i++) {
-        double xi1 = i * deltas[0] + xi1_min;
+        auto xi1 = i * sim_params.deltas[0] + t_sizes[1];
         for (size_t j = 0; j < dims[1]; j++) {
-            double theta = theta_min + j * deltas[1];
-            int k = 0;
-            for (k = 0; xi2_min + deltas[2] * (double) k < 0.0; k++) {
-                double xi2 = k * deltas[2] + xi2_min;
-                w[i][j][k] = -mu(xi1, xi2) * theta / (1 + theta * theta);
+            auto theta = t_sizes[5] + j * sim_params.deltas[1];
+            auto k = 0;
+            for (k = 0; t_sizes[3] + sim_params.deltas[2] * (double) k < 0.0; k++) {
+                auto xi2 = k * sim_params.deltas[2] + t_sizes[3];
+                w[i][j][k] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
                 s.push_back(w[i][j][k]);
             }
 
             for (k; k < dims[2]; k++) {
-                double xi2 = k * deltas[2] + xi2_min;
-                w[i][j][k] = mu(xi1, xi2) * theta / (1 + theta * theta);
+                auto xi2 = k * sim_params.deltas[2] + t_sizes[3];
+                w[i][j][k] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
                 s.push_back(w[i][j][k]);
             }
         }
     }
 
     //std::cout << "w max " << *std::max_element(s.begin(), s.end()) << std::endl;
-    double ***v = V(w, u, dims, deltas);
-    double ***h = H(u, dims, deltas);
+    auto ***v = V(w, u, sim_params);
+    auto ***h = H(u, sim_params);
 
     //std::cout << "-------------" << std::endl;
     // if memory will leak - add delete
-    bool stop = false;
-    int it_count = 0;
+    auto stop = false;
+    auto it_count = 0;
 
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
@@ -123,53 +149,53 @@ int main() {
 #endif
 
     //print_array(v, dims);
-    print_min_max_values(u, "u", dims);
-    print_min_max_values(v, "v", dims);
-    print_min_max_values(w, "w", dims);
-    print_min_max_values(h, "h", dims);
+    print_min_max_values(u, "u", sim_params);
+    print_min_max_values(v, "v", sim_params);
+    print_min_max_values(w, "w", sim_params);
+    print_min_max_values(h, "h", sim_params);
 
     ss.str(std::string());
     ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
-    export_vector_field(ss.str(), u, v, w, deltas);
+    export_vector_field(ss.str(), u, v, w, sim_params);
 
     ss.str(std::string());
     ss << filename << "_grid.vts";
-    export_grid(ss.str(), deltas);
+    export_grid(ss.str(), sim_params);
 
     std::cout << "OpenMP threads: " << omp_get_max_threads() << std::endl;
     do {
         //std::system("cls");
 
 
-        double ***h_next = H(h, w, v, dims, deltas, time_step);
-        double ***u_next = U(h_next, dims, deltas);
-        double ***w_next = W(h_next, w, v, dims, deltas, time_step);
-        double ***v_next = V(w_next, u_next, dims, deltas);
+        auto ***h_next = H(h, w, v, sim_params);
+        auto ***u_next = U(h_next, sim_params);
+        auto ***w_next = W(h_next, w, v, sim_params);
+        auto ***v_next = V(w_next, u_next, sim_params);
 
         if (it_count++ % print_every == 0) {
             std::cout << "-----------------------------------------------" << std::endl;
             std::cout << " Starting iteration " << it_count << std::endl;
-            print_min_max_values(u_next, "u", dims);
-            print_min_max_values(v_next, "v", dims);
-            print_min_max_values(w_next, "w", dims);
-            print_min_max_values(h_next, "h", dims);
+            print_min_max_values(u_next, "u", sim_params);
+            print_min_max_values(v_next, "v", sim_params);
+            print_min_max_values(w_next, "w", sim_params);
+            print_min_max_values(h_next, "h", sim_params);
         }
 
-        stop = max_norm(u, u_next, dims) < eps && max_norm(v, v_next, dims) < eps && max_norm(w, w_next, dims) < eps;
-        double ***old_u = u;
-        double ***old_v = v;
-        double ***old_w = w;
-        double ***old_h = h;
+        stop = max_norm(u, u_next, sim_params) < eps && max_norm(v, v_next, sim_params) < eps && max_norm(w, w_next, sim_params) < eps;
+        auto ***old_u = u;
+        auto ***old_v = v;
+        auto ***old_w = w;
+        auto ***old_h = h;
 
         u = u_next;
         v = v_next;
         w = w_next;
         h = h_next;
 
-        dispose_array(old_u, dims);
-        dispose_array(old_v, dims);
-        dispose_array(old_w, dims);
-        dispose_array(old_h, dims);
+        dispose_array(old_u, sim_params);
+        dispose_array(old_v, sim_params);
+        dispose_array(old_w, sim_params);
+        dispose_array(old_h, sim_params);
 
         delete[] old_u;
         delete[] old_v;
@@ -179,55 +205,54 @@ int main() {
         if (it_count % save_every == 0) {
             ss.str(std::string());
             ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_vector_field(ss.str(), u, v, w, deltas);
+            export_vector_field(ss.str(), u, v, w,sim_params);
 
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             ss.str(std::string());
             ss << filename << "_central_slice_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_central_slice(ss.str(), u, v, w, deltas);
+            export_central_slice(ss.str(), u, v, w, sim_params);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "Time difference vtk "
                       << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << std::endl;
 
             ss.str(std::string());
             ss << filename << "_u_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u, deltas, 0);
+            export_single_line(ss.str(), u,  0, sim_params);
 
             ss.str(std::string());
             ss << filename << "_u_theta1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u, deltas, 1);
+            export_single_line(ss.str(), u,  1, sim_params);
 
             ss.str(std::string());
             ss << filename << "_u_theta_max-1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u, deltas, theta_max - 1);
+            export_single_line(ss.str(), u, t_sizes[4] - 1, sim_params);
 
             ss.str(std::string());
             ss << filename << "_u_theta_max_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u, deltas, theta_max);
+            export_single_line(ss.str(), u,  t_sizes[4] - sim_params.deltas[1], sim_params);
 
             ss.str(std::string());
             ss << filename << "_v_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), v, deltas, 0);
+            export_single_line(ss.str(), v, 0, sim_params);
 
             ss.str(std::string());
             ss << filename << "_v_theta1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), v, deltas, 1);
-
+            export_single_line(ss.str(), v, 1, sim_params);
 
             begin = std::chrono::steady_clock::now();
             ss.str(std::string());
             ss << filename << "_bin_vector_field" << std::setfill('0') << std::setw(5) << it_count << ".vtk";
-            output_vtk_binary_2d(ss.str(), u, v, it_count, deltas);
+            output_vtk_binary_2d(ss.str(), u, v, it_count, sim_params);
             end = std::chrono::steady_clock::now();
             std::cout << "Time difference binary "
                       << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << std::endl;
         }
     } while (!stop);
 
-    dispose_array(u, dims);
-    dispose_array(v, dims);
-    dispose_array(w, dims);
-    dispose_array(h, dims);
+    dispose_array(u, sim_params);
+    dispose_array(v, sim_params);
+    dispose_array(w, sim_params);
+    dispose_array(h, sim_params);
 
     delete[] u;
     delete[] v;
