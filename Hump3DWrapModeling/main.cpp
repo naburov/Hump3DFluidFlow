@@ -1,10 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+void process_one_config(const char *cnf_path);
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <omp.h>
 #include <chrono>
+#include <fstream>
 
 #include "consts.h"
 #include "export_functions.h"
@@ -25,10 +28,26 @@
 #include <sys/stat.h>
 #endif
 
-int main() {
+int main(int argc, char *argv[]) {
     omp_set_num_threads(8);
 
-    auto cnf_path = "/Users/burovnikita/CLionProjects/Hump3DFluidFlow/configs/testconf";
+    std::vector<std::string> cnfs;
+    for (int i = 1; i < argc; ++i) {
+        cnfs.emplace_back(argv[i]);
+    }
+
+    // /tmp/tmp.SJNETVCrGC/cmake-build-release-x86_64-llvm-homewsl/Hump3DFluidFlow
+    // /tmp/tmp.SJNETVCrGC/configs/testconf
+
+    for (const auto & cnf : cnfs) {
+        std::cout << "Processing cnf " << cnf << std::endl;
+        process_one_config(cnf.c_str());
+    }
+    std::cout << "Done processing";
+    return 0;
+}
+
+void process_one_config(const char *cnf_path) {
     auto cnf = Config(cnf_path);
     cnf.print();
 
@@ -126,12 +145,13 @@ int main() {
     auto ***h = H(u, sim_params);
 
     //std::cout << "-------------" << std::endl;
-    // if memory will leak - add delete
+// if memory will leak - add delete
     auto stop = false;
+    auto max_steps = cnf.get_max_steps();
     auto it_count = 0;
 
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
+    auto t = time(nullptr);
+    auto tm = *localtime(&t);
 
     std::ostringstream oss;
     oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
@@ -147,6 +167,12 @@ int main() {
 #elif __linux__
     mkdir(("./out " + str).c_str(), 0777);
 #endif
+
+    ss.str(std::string());
+    ss << filename << "-cnf";
+    std::ifstream  src(cnf_path, std::ios::binary);
+    std::ofstream  dst(ss.str(),   std::ios::binary);
+    dst << src.rdbuf();
 
     //print_array(v, dims);
     print_min_max_values(u, "u", sim_params);
@@ -182,6 +208,8 @@ int main() {
         }
 
         stop = max_norm(u, u_next, sim_params) < eps && max_norm(v, v_next, sim_params) < eps && max_norm(w, w_next, sim_params) < eps;
+        stop |= it_count > max_steps;
+
         auto ***old_u = u;
         auto ***old_v = v;
         auto ***old_w = w;
@@ -258,6 +286,4 @@ int main() {
     delete[] v;
     delete[] w;
     delete[] h;
-
-    return 0;
 }

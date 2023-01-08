@@ -7,9 +7,10 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 enum functions {
-    tanh, exp
+    tanh_, exp_
 };
 
 class Config {
@@ -32,6 +33,8 @@ public:
     std::vector<int> get_saving_params();
 
     functions get_hump_function();
+
+    int get_max_steps();
 
     Config() = delete;
 

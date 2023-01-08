@@ -22,6 +22,11 @@ void Config::parse_params(const std::string &config_filename) {
     }
 }
 
+int Config::get_max_steps() {
+    auto max_steps = std::stoi(params.find("max_steps")->second);
+    return max_steps;
+}
+
 std::vector<int> Config::get_grid_dimensions() {
     auto N = std::stoi(params.find("N")->second); //x
     auto M = std::stoi(params.find("M")->second); //z
@@ -66,7 +71,7 @@ std::vector<int> Config::get_saving_params() {
 }
 
 functions Config::get_hump_function() {
-    return functions::tanh;
+    return functions::tanh_;
 }
 
 Config::Config(const std::string &config_filename) {
