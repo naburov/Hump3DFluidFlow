@@ -29,7 +29,7 @@ endif()
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE "ON" CACHE BOOL "Force Ninja to use response files.")
 
 add_executable(Hump3DFluidFlow
-        Hump3DWrapModeling/cell_calculating_functions.h
+        Hump3DWrapModeling/cell_calculating_functions.cuh
         Hump3DWrapModeling/calulating_functions.cpp
         Hump3DWrapModeling/consts.h
         Hump3DWrapModeling/export_functions.cpp
@@ -39,7 +39,11 @@ add_executable(Hump3DFluidFlow
         Hump3DWrapModeling/Config.h
         Hump3DWrapModeling/SimulationParams.h
         Hump3DWrapModeling/cell_calculating_functions.cu
-        Hump3DWrapModeling/3D_stencil.cu)
+        Hump3DWrapModeling/3D_stencil.cu
+        Hump3DWrapModeling/test_kernels.cu
+        Hump3DWrapModeling/test_kernels.cu
+        Hump3DWrapModeling/test_kernels.cu
+        Hump3DWrapModeling/test_kernels.cuh)
 
 set_target_properties(Hump3DFluidFlow PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(Hump3DFluidFlow PRIVATE ${VTK_LIBRARIES})
