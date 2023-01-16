@@ -4,7 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <math.h>
-#include "calculating_functions.h"
+#include "cell_calculating_functions.h"
 #include "consts.h"
 #include <algorithm>
 #include <omp.h>

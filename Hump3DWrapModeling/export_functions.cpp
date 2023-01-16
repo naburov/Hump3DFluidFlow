@@ -12,7 +12,7 @@
 #include <vtkDoubleArray.h>
 #include <vtkCellData.h>
 
-#include "calculating_functions.h"
+#include "cell_calculating_functions.h"
 #include "export_functions.h"
 
 void print_array(double*** arr, SimulationParams params) {

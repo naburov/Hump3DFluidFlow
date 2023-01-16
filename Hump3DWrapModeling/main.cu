@@ -11,12 +11,14 @@ void process_one_config(const char *cnf_path);
 
 #include "consts.h"
 #include "export_functions.h"
-#include "calculating_functions.h"
+#include "cell_calculating_functions.h"
 #include "Config.h"
 #include "SimulationParams.h"
 
 #include <vector>
 #include <algorithm>
+#include<stdio.h>
+#include<stdlib.h>
 
 #ifdef __APPLE__
 
@@ -28,8 +30,22 @@ void process_one_config(const char *cnf_path);
 #include <sys/stat.h>
 #endif
 
-int main(int argc, char *argv[]) {
-    omp_set_num_threads(8);
+__device__ __host__ int func(int x, int y){
+    return x + y;
+}
+
+__global__ void print_from_gpu(int x, int y, int z, int N, int M, int K) {
+    printf("Hello World! from thread [%d,%d] From device\n", threadIdx.x, blockIdx.x);
+    printf("Index is %d \n", func(x, y));
+}
+
+int main() {
+    printf("Hello World from host!\n");
+    print_from_gpu<<<1,1>>>(1, 1, 1, 10, 10, 10);
+    cudaDeviceSynchronize();
+}
+
+int _main(int argc, char *argv[]) {
 
     std::vector<std::string> cnfs;
     for (int i = 1; i < argc; ++i) {
