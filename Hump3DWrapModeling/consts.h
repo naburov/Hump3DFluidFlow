@@ -11,7 +11,7 @@ const double x0 = 5.0;
 const double z0 = 5.0;
 const double eps = 0.0001;
 const double f_second = 0.33;
-const double c = f_second / std::sqrt(x0);
+//const double c = f_second / std::sqrt(x0);
 
 //const double xi1_min = -10 * 4;
 //const double xi1_max = 10 * 4;

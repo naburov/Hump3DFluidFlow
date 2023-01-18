@@ -11,6 +11,7 @@ void process_one_config(const char *cnf_path);
 #include "consts.h"
 #include "export_functions.h"
 #include "cell_calculating_functions.cuh"
+#include "calculating_kernels.cuh"
 #include "Config.h"
 #include "SimulationParams.h"
 
@@ -43,9 +44,13 @@ int main(int argc, char **argv) {
     double arr[27] = {0, 0, 0, 0, 4., 0, 0, 0, 0,
                       0, 1, 0, 1, 2, 1, 0, 1, 0,
                       0, 0, 0, 0, 1, 0, 0, 0, 0};
+    double max_arr[11] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
     auto ptr = &arr;
+    auto max_ptr = &max_arr;
     auto bytes = 27 * sizeof(double);
-    double *gpu_arr, *out;
+    auto max_bytes = 11 * sizeof(double);
+    double *gpu_arr, *out, *max_gpu_arr;
 
     auto out_cpu = (double *) malloc(2 * sizeof(double));
 
@@ -61,6 +66,7 @@ int main(int argc, char **argv) {
     SimulationParams *d_sim_params;
 
     auto res = cudaMalloc(&gpu_arr, bytes);
+    auto max_res = cudaMalloc(&max_gpu_arr, max_bytes);
     if (res != cudaSuccess) {
         std::cout << "Error occured " << res << std::endl;
     }
@@ -68,12 +74,15 @@ int main(int argc, char **argv) {
     cudaMalloc(&d_sim_params, sizeof(SimulationParams));
 
     cudaMemcpy(gpu_arr, ptr, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(max_gpu_arr, max_ptr, max_bytes, cudaMemcpyHostToDevice);
     cudaMemcpy(d_sim_params, &sim_params, sizeof(SimulationParams), cudaMemcpyHostToDevice);
 
     std::cout << "Executing kernel" << std::endl;
     test_stencil_kernel<<< 1, 1 >>>(gpu_arr, out, 1, 1, 1, d_sim_params);
     test_index_kernel<<<1, 1>>>(d_sim_params);
     test_index_back_transform<<<1, 1>>>(d_sim_params);
+//    reduce_max_kernel<<<4, 4>>>(max_gpu_arr, 11);
+    main_kernel<<<4, 4>>>();
 //    cudaDeviceSynchronize();
     std::cout << "Kernel finished" << std::endl;
 

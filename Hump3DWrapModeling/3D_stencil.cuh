@@ -12,7 +12,12 @@
 #include <vector_types.h>
 
 #include "SimulationParams.h"
-#include "cell_calculating_functions.cuh"
+
+// computes flat index given 3D index
+__device__ __host__ unsigned int indexof(unsigned int x, unsigned int y, unsigned int z, SimulationParams *params);
+
+// computes 3D index from flat
+__device__ __host__ int3 indexof(unsigned int id, SimulationParams *params);
 
 struct Stencil3D {
     // w - value at the point
@@ -113,7 +118,8 @@ struct Stencil3D {
         print_double4(z_less);
     }
 
-    __device__ Stencil3D(const double *__restrict__ arr, int i, int j, int k, SimulationParams *params) {
+    __device__ Stencil3D(const double *__restrict__ arr, unsigned int i, unsigned int j, unsigned int k,
+                         SimulationParams *params) {
         center.x = i * params->deltas[0] + params->mins[0];
         center.y = j * params->deltas[1] + params->mins[1];
         center.z = k * params->deltas[2] + params->mins[2];

@@ -1,14 +1,28 @@
 #pragma once
 
 #include <cuda.h>
+
 #include "SimulationParams.h"
+#include "3D_stencil.cuh"
 
-const double c = 0.33;
+const __device__ double c = 1.0;
 
-// computes flat index given 3D index
-__device__ __host__ int indexof(int x, int y, int z, SimulationParams* params);
+__device__ double mu(double xi1, double xi2, SimulationParams *params);
 
-// computes 3D index from flat
-__device__ __host__ int3 indexof(int id, SimulationParams *params);
+__device__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params);
 
-__device__ double mu(double xi1, double xi2, SimulationParams* params);
+__device__ double relaxed_derivative(double a, double derivative_left, double derivative_right);
+
+__device__ double
+U_point(Stencil3D *__restrict__ H, SimulationParams *params);
+
+__device__ double
+H_point(Stencil3D *__restrict__ U, SimulationParams *params);
+
+__device__ double
+H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params);
+
+__device__ double
+W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params);
+
+__device__ double v_func(Stencil3D *__restrict__ U, Stencil3D *__restrict__ W, SimulationParams *params);
