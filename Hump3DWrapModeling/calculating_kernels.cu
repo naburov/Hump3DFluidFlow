@@ -213,10 +213,20 @@ __global__ void main_kernel(double *old_h, double *old_w, double *old_v, double 
     v[linear_index] = v_func(&new_u_point, &new_w_point, sim_params);
 }
 
-__global__ void cumulative_sum_kernel(double *arr, SimulationParams *params) {
+__global__ void integrate_v_kernel(double *v_func, SimulationParams *sim_params) {
     auto threadId = threadIdx.x + blockIdx.x * blockDim.x;
-    auto x        = threadId / params->dims[1];
-    auto y        = threadId / params->dims[2];
+    auto i        = threadId / sim_params->dims[1];
+    auto k        = threadId % sim_params->dims[2];
+
+    // TODO: add bounding conditions
+
+    v_func[indexof(i, 0, k, sim_params)] = 0;
+    for (unsigned int j = 1; j < sim_params->dims[1] - 2; j++) {
+        v_func[indexof(i, j, k, sim_params)] =
+                v_func[indexof(i, j - 1, k, sim_params)]
+                - sim_params->deltas[1] * v_func[indexof(i, j, k, sim_params)];
+    }
+    v_func[indexof(i, sim_params->dims[1] - 1, k, sim_params)] = 0.0;
 }
 
 __global__ void reduce_max_kernel(double *array, unsigned int size) {
