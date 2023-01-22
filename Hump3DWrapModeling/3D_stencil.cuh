@@ -65,7 +65,7 @@ struct Stencil3D {
     }
 
     __device__ double dz_r() const {
-        return (z_more.w - center.w) / (z_more.y - center.z);
+        return (z_more.w - center.w) / (z_more.z - center.z);
     }
 
     __device__ double dz_l() const {
@@ -82,12 +82,12 @@ struct Stencil3D {
     }
 
     __device__ double dy2() const {
-        auto delta = y_more.x - center.x;
+        auto delta = y_more.y - center.y;
         return (y_more.w - 2 * center.y + y_less.w) / (delta * delta);
     }
 
     __device__ double dz2() const {
-        auto delta = z_more.x - center.z;
+        auto delta = z_more.z - center.z;
         return (z_more.w - 2 * center.w + z_less.w) / (delta * delta);
     }
 
@@ -116,6 +116,17 @@ struct Stencil3D {
 
         printf("z_less \n");
         print_double4(z_less);
+
+        printf("dx_r %f\n", dx_r());
+        printf("dx_l %f\n", dx_l());
+        printf("dx_c %f\n", dx_c());
+        printf("dy_r %f\n", dy_r());
+        printf("dy_l %f\n", dy_l());
+        printf("dy_c %f\n", dy_c());
+        printf("dz_r %f\n", dz_r());
+        printf("dz_r %f\n", dz_l());
+        printf("dz_c %f\n", dz_c());
+        printf("dy2 %f\n", dy2());
     }
 
     __device__ Stencil3D(const double *__restrict__ arr, unsigned int i, unsigned int j, unsigned int k,

@@ -1,6 +1,6 @@
 #include "SimulationParams.h"
 #include "3D_stencil.cuh"
-#include "consts.h"
+#include "cuda_consts.cuh"
 
 
 __device__ __host__ unsigned int indexof(unsigned int x, unsigned int y, unsigned int z, SimulationParams *params) {
@@ -20,12 +20,12 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
            derivative_right * (a - abs(a)) / 2;
 }
 
-__device__ double mu(double xi1, double xi2, SimulationParams *params) {
+__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
     return params->A * exp(-pow(xi1, 2.0) * params->alpha
                            - pow(xi2, 2.0) * params->beta);
 }
 
-__device__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
+__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
     if (dim == 0)
         return -2 * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
                                                           - pow(xi2, 2.0) * params->beta);
@@ -45,7 +45,7 @@ H_point(Stencil3D *__restrict__ U, SimulationParams *params) {
 }
 
 __device__ double
-H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params) {
+H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, const double dp, SimulationParams *params) {
     // H->center.y = theta
     // H->center.x = xi1
     // H->center.z = xi2
@@ -65,8 +65,9 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->center.w,
                     H->dz_l(),
                     H->dz_r())
-            + V->y_less.w * c + V->center.w * c -
-            H->dy2()
+            + dp * c
+            + V->center.w * c
+            - H->dy2()
     );
 }
 
