@@ -319,10 +319,10 @@ void process_one_config_cuda(const char *cnf_path) {
         print_min_max_values(W, "w", sim_params);
         print_min_max_values(H, "h", sim_params);
 
-        ss.str(std::string());
-        ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
-        export_vector_field(ss.str(), U, V, W, sim_params);
-        it_count++;
+//        ss.str(std::string());
+//        ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
+//        export_vector_field(ss.str(), U, V, W, sim_params);
+//        it_count++;
 
 //        if (it_count++ % print_every == 0) {
 //            std::cout << "-----------------------------------------------" << std::endl;

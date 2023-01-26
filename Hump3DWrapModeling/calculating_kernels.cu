@@ -23,9 +23,9 @@ __global__ void w_init_kernel(double *w, SimulationParams *sim_params) {
     }
 
     if (xi2 < 0.0) {
-        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 * theta * theta + 0.00001);
+        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
     } else {
-        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 * theta * theta + 0.00001);
+        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
     }
 }
 
@@ -55,38 +55,23 @@ __global__ void h_kernel(const double *__restrict__ u, double *h, SimulationPara
 
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    if (arr_ids.x == 0) {
-        auto xi1 = sim_params->mins[0];
+    if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
+        arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
+        auto xi1 = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
         h[linear_index] = c * mu(xi1, xi2, sim_params);;
         return;
     }
     if (arr_ids.y == 0) {
-        h[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.z == 0) {
-        auto xi1        = sim_params->mins[0];
+        auto xi1        = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2        = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = c * mu(xi1, xi2, sim_params);
-        return;
-    }
-    if (arr_ids.x == sim_params->dims[0] - 1) {
-        auto xi1        = sim_params->mins[0];
-        auto xi2        = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = h[linear_index] = c * mu(xi1, xi2, sim_params);
-        return;
+        h[linear_index] = -c * mu(xi1, xi2, sim_params);
 
+        return;
     }
     if (arr_ids.y == sim_params->dims[1] - 1) {
         // dH/d\theta|_{\theta -> \infty} = 0; -> computed after a stencils computations (u as well)
         // fill in bounding conditions on the dims[1] - 2
-        return;
-    }
-    if (arr_ids.z == sim_params->dims[2] - 1) {
-        auto xi1 = sim_params->mins[0];
-        auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = c * mu(xi1, xi2, sim_params);
         return;
     }
 
@@ -109,42 +94,22 @@ h_kernel(const double *__restrict__ old_h, const double *__restrict__ old_w, con
 
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    if (arr_ids.x == 0) {
-        auto xi1 = sim_params->mins[0];
+    if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
+        arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
+        auto xi1 = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] =
-                c * mu(xi1, xi2, sim_params);;
+        h[linear_index] = c * mu(xi1, xi2, sim_params);;
         return;
     }
     if (arr_ids.y == 0) {
-        h[linear_index] = 0.0;
+        auto xi1        = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
+        auto xi2        = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
+        h[linear_index] = -c * mu(xi1, xi2, sim_params);
         return;
-    }
-    if (arr_ids.z == 0) {
-        auto xi1 = sim_params->mins[0];
-        auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] =
-                c * mu(xi1, xi2, sim_params);
-        return;
-    }
-    if (arr_ids.x == sim_params->dims[0] - 1) {
-        auto xi1 = sim_params->mins[0];
-        auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = h[linear_index] =
-                c * mu(xi1, xi2, sim_params);
-        return;
-
     }
     if (arr_ids.y == sim_params->dims[1] - 1) {
         // dH/d\theta|_{\theta -> \infty} = 0; -> computed after a stencils computations (u as well)
         // fill in bounding conditions on the dims[1] - 2
-        return;
-    }
-    if (arr_ids.z == sim_params->dims[2] - 1) {
-        auto xi1 = sim_params->mins[0];
-        auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] =
-                c * mu(xi1, xi2, sim_params);
         return;
     }
 
@@ -170,7 +135,8 @@ __global__ void u_kernel(const double *__restrict__ h, double *u, SimulationPara
         return;
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    if (arr_ids.x == 0) {
+    if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
+        arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
         return;
     }
@@ -178,22 +144,9 @@ __global__ void u_kernel(const double *__restrict__ h, double *u, SimulationPara
         u[linear_index] = 0.0;
         return;
     }
-    if (arr_ids.z == 0) {
-        u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
-        return;
-    }
-    if (arr_ids.x == sim_params->dims[0] - 1) {
-        u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
-        return;
-
-    }
     if (arr_ids.y == sim_params->dims[1] - 1) {
         // dH/d\theta|_{\theta -> \infty} = 0; -> computed after a stencils computations (u as well)
         // fill in bounding conditions on the dims[1] - 2
-        return;
-    }
-    if (arr_ids.z == sim_params->dims[2] - 1) {
-        u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
         return;
     }
 
@@ -213,38 +166,16 @@ __global__ void v_func_kernel(const double *__restrict__ w, double *v, const dou
         return;
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    if (arr_ids.x == 0) {
+    if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
+        arr_ids.y == 0 || arr_ids.y == sim_params->dims[1] - 1 ||
+        arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         v[linear_index] = 0.0;
         return;
-    }
-    if (arr_ids.y == 0) {
-        v[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.z == 0) {
-        v[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
-        return;
-    }
-    if (arr_ids.x == sim_params->dims[0] - 1) {
-        v[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.y == sim_params->dims[1] - 1) {
-        // dH/d\theta|_{\theta -> \infty} = 0; -> computed after a stencils computations (u as well)
-        // fill in bounding conditions on the dims[1] - 2
-        return;
-    }
-    if (arr_ids.z == sim_params->dims[2] - 1) {
-        v[linear_index] = 0.0;
     }
 
     Stencil3D w_point(w, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
     Stencil3D u_point(u, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
     v[linear_index] = v_func(&u_point, &w_point, sim_params);
-    if (arr_ids.y == sim_params->dims[1] - 2) {
-        auto bounding_ids = indexof(arr_ids.x, arr_ids.y + 1, arr_ids.z, sim_params);
-        v[bounding_ids]   = 0.0;
-    }
 }
 
 __global__ void integrate_v_kernel(double *v_func, SimulationParams *sim_params) {
@@ -256,19 +187,8 @@ __global__ void integrate_v_kernel(double *v_func, SimulationParams *sim_params)
 
     v_func[indexof(i, 0, k, sim_params)] = 0;
     for (unsigned int j = 1; j < sim_params->dims[1] - 1; j++) {
-        if (i == 0) {
-            v_func[indexof(i, j, k, sim_params)] = 0;
-            continue;
-        }
-        if (i == sim_params->dims[0] - 1) {
-            v_func[indexof(i, j, k, sim_params)] = 0;
-            continue;
-        }
-        if (k == 0) {
-            v_func[indexof(i, j, k, sim_params)] = 0;
-            continue;
-        }
-        if (k == sim_params->dims[1] - 1) {
+        if (i == 0 || i == sim_params->dims[0] - 1 ||
+            k == 0 || k == sim_params->dims[1] - 1) {
             v_func[indexof(i, j, k, sim_params)] = 0;
             continue;
         }
@@ -286,34 +206,16 @@ __global__ void w_kernel(const double *__restrict__ h, const double *__restrict_
         return;
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    if (arr_ids.x == 0) {
-        w[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.y == 0) {
-        w[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.z == 0) {
-        w[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
-        return;
-    }
-    if (arr_ids.x == sim_params->dims[0] - 1) {
-        w[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.y == sim_params->dims[1] - 1) {
-        w[linear_index] = 0.0;
-        return;
-    }
-    if (arr_ids.z == sim_params->dims[2] - 1) {
+    if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
+        arr_ids.y == 0 || arr_ids.y == sim_params->dims[1] - 1 ||
+        arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         w[linear_index] = 0.0;
         return;
     }
 
     Stencil3D w_point(old_w, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    Stencil3D h_point(old_w, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
-    Stencil3D v_point(old_w, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
+    Stencil3D h_point(h, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
+    Stencil3D v_point(v, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
     w[linear_index] = W_point(&h_point, &w_point, &v_point, sim_params);
 }
 

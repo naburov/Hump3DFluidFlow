@@ -27,10 +27,10 @@ __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) 
 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
     if (dim == 0)
-        return -2 * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
+        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
                                                           - pow(xi2, 2.0) * params->beta);
     else
-        return -2 * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
+        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
                                                          - pow(xi2, 2.0) * params->beta);
 }
 
