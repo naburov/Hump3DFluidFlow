@@ -3,7 +3,7 @@
 
 #pragma once
 void print_array(double*** arr, SimulationParams sim_params);
-void export_vector_field(const std::string& filename, double*** U, double*** V, double*** W, SimulationParams sim_params);
+void export_vector_field(const std::string& filename, double* U, double* V, double* W, SimulationParams sim_params);
 void dispose_array(double*** arr, SimulationParams sim_params);
 void print_min_max_values(const double *arr, const std::string &name, SimulationParams params) ;
 void export_grid(const std::string& filename, SimulationParams sim_params);
