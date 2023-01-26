@@ -210,11 +210,20 @@ void process_one_config_cuda(const char *cnf_path) {
 
     while (!stop) {
         stop = it_count > max_steps;
-        cudaMemcpy(d_old_H, d_H, grid_size_bytes, cudaMemcpyDeviceToDevice);
-        cudaMemcpy(d_old_U, d_U, grid_size_bytes, cudaMemcpyDeviceToDevice);
-        cudaMemcpy(d_old_W, d_W, grid_size_bytes, cudaMemcpyDeviceToDevice);
-        cudaMemcpy(d_old_V, d_V, grid_size_bytes, cudaMemcpyDeviceToDevice);
-        cudaDeviceSynchronize();
+        auto temp_h = d_old_H;
+        auto temp_u = d_old_U;
+        auto temp_w = d_old_W;
+        auto temp_v = d_old_V;
+
+        d_old_H = d_H;
+        d_old_U = d_U;
+        d_old_W = d_W;
+        d_old_V = d_V;
+
+        d_H = temp_h;
+        d_U = temp_u;
+        d_W = temp_w;
+        d_V = temp_v;
 
         h_kernel<<<num_blocks, num_threads_per_block>>>(d_old_H, d_old_W, d_old_V, d_H, d_sim_params);
         u_kernel<<<num_blocks, num_threads_per_block>>>(d_H, d_U, d_sim_params);
