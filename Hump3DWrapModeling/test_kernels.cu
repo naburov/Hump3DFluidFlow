@@ -4,10 +4,93 @@
 //#include <cuda.h>
 #include <stdio.h>
 #include<stdlib.h>
+#include <algorithm>
 
 #include "cell_calculating_functions.cuh"
 #include "SimulationParams.h"
 #include "3D_stencil.cuh"
+
+//int _main(int argc, char **argv) {
+//    double arr[27]     = {0, 0, 0, 0, 4., 0, 0, 0, 0,
+//                          0, 1, 0, 1, 2, 1, 0, 1, 0,
+//                          0, 0, 0, 0, 1, 0, 0, 0, 0};
+//    double max_arr[11] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+//    double v_array[64] = {};
+//    std::fill_n(v_array, 64, 1.);
+//
+//    auto   ptr       = &arr;
+//    auto   max_ptr   = &max_arr;
+//    auto   v_ptr     = &v_array;
+//    auto   bytes     = 64 * sizeof(double);
+//    auto   max_bytes = 11 * sizeof(double);
+//    double *gpu_arr, *out, *max_gpu_arr, *d_v;
+//
+//    auto out_cpu = (double *) malloc(2 * sizeof(double));
+//
+//    SimulationParams sim_params = {
+//            {3, 3, 3},
+//            {0, 0, 0},
+//            {1, 1, 1},
+//            1,
+//            1,
+//            1,
+//            0.1
+//    };
+//
+//
+//    SimulationParams v_sim_params = {
+//            {4, 4, 4},
+//            {0, 0, 0},
+//            {1, 1, 1},
+//            1,
+//            1,
+//            1,
+//            0.1
+//    };
+//
+//    SimulationParams *d_sim_params, *d_v_sim_params;
+//
+//    auto res     = cudaMalloc(&gpu_arr, bytes);
+//    auto max_res = cudaMalloc(&max_gpu_arr, max_bytes);
+//    if (res != cudaSuccess) {
+//        std::cout << "Error occured " << res << std::endl;
+//    }
+//    cudaMalloc(&out, 2 * sizeof(double));
+//    cudaMalloc(&d_sim_params, sizeof(SimulationParams));
+//    cudaMalloc(&d_v_sim_params, sizeof(SimulationParams));
+//    cudaMalloc(&d_v, 64 * sizeof(double));
+//
+//    cudaMemcpy(gpu_arr, ptr, bytes, cudaMemcpyHostToDevice);
+//    cudaMemcpy(d_v, v_ptr, bytes, cudaMemcpyHostToDevice);
+//    cudaMemcpy(max_gpu_arr, max_ptr, max_bytes, cudaMemcpyHostToDevice);
+//    cudaMemcpy(d_sim_params, &sim_params, sizeof(SimulationParams), cudaMemcpyHostToDevice);
+//    cudaMemcpy(d_v_sim_params, &v_sim_params, sizeof(SimulationParams), cudaMemcpyHostToDevice);
+//
+//    std::cout << "Executing kernel" << std::endl;
+//    test_stencil_kernel<<< 1, 1 >>>(gpu_arr, out, 1, 1, 1, d_sim_params);
+//    test_index_kernel<<<1, 1>>>(d_sim_params);
+//    test_index_back_transform<<<1, 1>>>(d_sim_params);
+//    integrate_v_kernel<<<2, 2>>>(d_v, d_v_sim_params);
+////    reduce_max_kernel<<<4, 4>>>(max_gpu_arr, 11);
+////    main_kernel<<<4, 4>>>();
+////    cudaDeviceSynchronize();
+//    std::cout << "Kernel finished" << std::endl;
+//
+//    cudaMemcpy(out_cpu, out, 2 * sizeof(double), cudaMemcpyDeviceToHost);
+//    cudaMemcpy(v_array, d_v, 64 * sizeof(double), cudaMemcpyDeviceToHost);
+//    std::cout << "Transfer back is done" << std::endl;
+//    for (int i = 0; i < 64; i++) {
+//        auto id = indexof(i, &v_sim_params);
+//        std::cout << id.x << " " << id.y << " " << id.z << " " << v_array[i] << std::endl;
+//    }
+//    std::cout << std::endl;
+//    std::cout << "Print of values is done" << std::endl;
+//
+//    cudaFree(gpu_arr);
+//    cudaFree(out);
+//
+//    return 0;
+//}
 
 __global__ void test_stencil_kernel(const double* arr, double* out, int i, int j, int k, SimulationParams* params){
     auto stencil = Stencil3D(arr, i, j, k, params);

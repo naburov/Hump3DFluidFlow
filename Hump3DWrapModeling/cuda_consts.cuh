@@ -9,5 +9,6 @@ static __constant__  __device__ double x0       = 5.0;
 static __constant__  __device__ double z0       = 5.0;
 static __constant__  __device__ double eps      = 0.0001;
 static __constant__  __device__ double f_second = 0.33;
+// TODO: Remove hardcoded c
 static __constant__  __device__ double c        = 0.14758048651;
 #endif //HUMP3DWRAPMODELING_CUDA_CONSTS_CUH

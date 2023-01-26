@@ -11,9 +11,9 @@ xi2_max:10
 theta_min:0
 theta_max:10
 A:2.0
-tmax:1
+tmax:5
 alpha:0.25
 beta:0.25
-save_every:200
-print_every:50
-max_steps:5000
+save_every:5000
+print_every:5000
+max_steps:100000
