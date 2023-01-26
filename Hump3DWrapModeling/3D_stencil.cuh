@@ -83,7 +83,7 @@ struct Stencil3D {
 
     __device__ double dy2() const {
         auto delta = y_more.y - center.y;
-        return (y_more.w - 2 * center.y + y_less.w) / (delta * delta);
+        return (y_more.w - 2 * center.w + y_less.w) / (delta * delta);
     }
 
     __device__ double dz2() const {

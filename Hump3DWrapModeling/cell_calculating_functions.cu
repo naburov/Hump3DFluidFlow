@@ -28,10 +28,10 @@ __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
     if (dim == 0)
         return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
-                                                          - pow(xi2, 2.0) * params->beta);
+                                                           - pow(xi2, 2.0) * params->beta);
     else
         return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
-                                                         - pow(xi2, 2.0) * params->beta);
+                                                          - pow(xi2, 2.0) * params->beta);
 }
 
 __device__ double
@@ -45,20 +45,24 @@ H_point(Stencil3D *__restrict__ U, SimulationParams *params) {
 }
 
 __device__ double
-H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, const double dp, SimulationParams *params) {
-    // H->center.y = theta
+H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, const double dp,
+        SimulationParams *params) {
+    auto theta = H->center.y;
+    auto xi1   = H->center.x;
+    auto xi2   = H->center.z;
     // H->center.x = xi1
     // H->center.z = xi2
     return H->center.w
            - params->timeStep * (
             relaxed_derivative(
-                    H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params)),
+                    H->center.w + c * (theta + mu(xi1, xi2, params)),
                     H->dx_l(),
                     H->dx_r())
             + relaxed_derivative(
-                    (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))) *
-                    mu_derivative(H->center.x, H->center.z, 0, params) +
-                    W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) - V->center.w,
+                    (H->center.w + c * (theta + mu(xi1, xi2, params))) *
+                    mu_derivative(xi1, xi2, 0, params) +
+                    W->center.w * mu_derivative(xi1, xi2, 1, params) -
+                    V->center.w,
                     H->dy_l(),
                     H->dy_r())
             + relaxed_derivative(
