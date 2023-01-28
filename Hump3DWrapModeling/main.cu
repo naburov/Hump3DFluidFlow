@@ -38,11 +38,23 @@ void process_one_config_cuda(const char *cnf_path);
 #include "cell_calculating_functions.cuh"
 #include "calculating_kernels.cuh"
 
-// TODO: empty cnf copy
 // TODO: graph execution
-// TODO: time becnchmarks
+// TODO: time becnchmarks - done
 // TODO: dp/dxi
 // TODO: +/- in H_kernel
+// TODO: reduce_max_kernel
+
+void filecopy(FILE *dest, FILE *src) {
+    const int size = 16384;
+    char      buffer[size];
+
+    while (!feof(src)) {
+        int n = fread(buffer, 1, size, src);
+        fwrite(buffer, 1, n, dest);
+    }
+
+    fflush(dest);
+}
 
 int main(int argc, char *argv[]) {
 
@@ -120,9 +132,14 @@ void process_one_config_cuda(const char *cnf_path) {
 
     ss.str(std::string());
     ss << filename << "-cnf";
-    std::ifstream src(cnf_path, std::ios::binary);
-    std::ofstream dst(ss.str(), std::ios::binary);
-    dst << src.rdbuf();
+
+    FILE *infile  = fopen(cnf_path, "rb");
+    FILE *outfile = fopen(ss.str().c_str(), "wb");
+
+    filecopy(outfile, infile);
+
+    fclose(infile);
+    fclose(outfile);
 
     ss.str(std::string());
     ss << filename << "_grid.vts";
@@ -196,12 +213,18 @@ void process_one_config_cuda(const char *cnf_path) {
     auto stop     = false;
     auto it_count = 0;
 
-    cudaEvent_t event_start, event_stop;
+    cudaEvent_t kernel_event_start, kernel_event_stop, it_start, it_stop;
 
     std::vector<float> h_times;
     std::vector<float> u_times;
     std::vector<float> w_times;
     std::vector<float> v_times;
+    std::vector<float> it_times;
+
+    cudaEventCreate(&kernel_event_start);
+    cudaEventCreate(&kernel_event_stop);
+    cudaEventCreate(&it_start);
+    cudaEventCreate(&it_stop);
 
     while (!stop) {
         stop = it_count > max_steps;
@@ -221,42 +244,47 @@ void process_one_config_cuda(const char *cnf_path) {
         d_W = temp_w;
         d_V = temp_v;
         //endregion PointersReassign
+        cudaEventRecord(it_start);
 
-        cudaEventCreate(&event_start);
-        cudaEventCreate(&event_stop);
-
-        cudaEventRecord(event_start);
+        cudaEventRecord(kernel_event_start);
         h_kernel<<<num_blocks, num_threads_per_block>>>(d_old_H, d_old_W, d_old_V, d_H, d_sim_params);
-        cudaEventRecord(event_stop);
-        cudaEventSynchronize(event_stop);
+        cudaEventRecord(kernel_event_stop);
+        cudaEventSynchronize(kernel_event_stop);
         float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, event_start, event_stop);
+        cudaEventElapsedTime(&milliseconds, kernel_event_start, kernel_event_stop);
         h_times.push_back(milliseconds);
 
-        cudaEventRecord(event_start);
+        cudaEventRecord(kernel_event_start);
         u_kernel<<<num_blocks, num_threads_per_block>>>(d_H, d_U, d_sim_params);
-        cudaEventRecord(event_stop);
-        cudaEventSynchronize(event_stop);
+        cudaEventRecord(kernel_event_stop);
+        cudaEventSynchronize(kernel_event_stop);
         milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, event_start, event_stop);
+        cudaEventElapsedTime(&milliseconds, kernel_event_start, kernel_event_stop);
         u_times.push_back(milliseconds);
 
-        cudaEventRecord(event_start);
+        cudaEventRecord(kernel_event_start);
         w_kernel<<<num_blocks, num_threads_per_block>>>(d_H, d_old_W, d_old_V, d_W, d_sim_params);
-        cudaEventRecord(event_stop);
-        cudaEventSynchronize(event_stop);
+        cudaEventRecord(kernel_event_stop);
+        cudaEventSynchronize(kernel_event_stop);
         milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, event_start, event_stop);
+        cudaEventElapsedTime(&milliseconds, kernel_event_start, kernel_event_stop);
         w_times.push_back(milliseconds);
+        cudaDeviceSynchronize();
 
-        cudaEventRecord(event_start);
+        cudaEventRecord(kernel_event_start);
         v_func_kernel<<<num_blocks, num_threads_per_block>>>(d_W, d_V, d_U, d_sim_params);
         integrate_v_kernel<<<num_blocks, num_threads_per_block>>>(d_V, d_sim_params);
-        cudaEventRecord(event_stop);
-        cudaEventSynchronize(event_stop);
+        cudaEventRecord(kernel_event_stop);
+        cudaEventSynchronize(kernel_event_stop);
         milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, event_start, event_stop);
+        cudaEventElapsedTime(&milliseconds, kernel_event_start, kernel_event_stop);
         v_times.push_back(milliseconds);
+
+        cudaEventRecord(it_stop);
+        cudaEventSynchronize(it_stop);
+        milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, it_start, it_stop);
+        it_times.push_back(milliseconds);
 
 //        std::cout << "-----------------------------------------------" << std::endl;
 //        std::cout << " Starting iteration " << it_count++ << std::endl;
@@ -291,14 +319,8 @@ void process_one_config_cuda(const char *cnf_path) {
                       << std::endl;
             std::cout << "Average v_kernel: " << std::accumulate(v_times.begin(), v_times.end(), 0.0) / v_times.size()
                       << std::endl;
-//            cudaMemcpy(H, d_old_H, grid_size_bytes, cudaMemcpyDeviceToHost);
-//            cudaMemcpy(U, d_old_U, grid_size_bytes, cudaMemcpyDeviceToHost);
-//            cudaMemcpy(W, d_old_W, grid_size_bytes, cudaMemcpyDeviceToHost);
-//            cudaMemcpy(V, d_old_V, grid_size_bytes, cudaMemcpyDeviceToHost);
-//            print_min_max_values(U, "u", sim_params);
-//            print_min_max_values(V, "v", sim_params);
-//            print_min_max_values(W, "w", sim_params);
-//            print_min_max_values(H, "h", sim_params);
+            std::cout << "Average it time: " << std::accumulate(it_times.begin(), it_times.end(), 0.0) / it_times.size()
+                      << std::endl;
         }
 
         if (it_count % save_every == 0) {
@@ -306,6 +328,11 @@ void process_one_config_cuda(const char *cnf_path) {
             cudaMemcpy(U, d_old_U, grid_size_bytes, cudaMemcpyDeviceToHost);
             cudaMemcpy(W, d_old_W, grid_size_bytes, cudaMemcpyDeviceToHost);
             cudaMemcpy(V, d_old_V, grid_size_bytes, cudaMemcpyDeviceToHost);
+
+            print_min_max_values(U, "u", sim_params);
+            print_min_max_values(V, "v", sim_params);
+            print_min_max_values(W, "w", sim_params);
+            print_min_max_values(H, "h", sim_params);
 
             ss.str(std::string());
             ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
@@ -323,6 +350,10 @@ void process_one_config_cuda(const char *cnf_path) {
     cudaFree(d_U);
     cudaFree(d_W);
     cudaFree(d_V);
+    cudaFree(d_old_H);
+    cudaFree(d_old_U);
+    cudaFree(d_old_W);
+    cudaFree(d_old_V);
     cudaFree(d_sim_params);
 
     delete[] U;
