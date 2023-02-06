@@ -269,7 +269,6 @@ void process_one_config_cuda(const char *cnf_path) {
         milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, kernel_event_start, kernel_event_stop);
         w_times.push_back(milliseconds);
-        cudaDeviceSynchronize();
 
         cudaEventRecord(kernel_event_start);
         v_func_kernel<<<num_blocks, num_threads_per_block>>>(d_W, d_V, d_U, d_sim_params);
@@ -311,16 +310,16 @@ void process_one_config_cuda(const char *cnf_path) {
         if (it_count++ % print_every == 0) {
             std::cout << "-----------------------------------------------" << std::endl;
             std::cout << " Starting iteration " << it_count << std::endl;
-            std::cout << "Average h_kernel: " << std::accumulate(h_times.begin(), h_times.end(), 0.0) / h_times.size()
-                      << std::endl;
-            std::cout << "Average u_kernel: " << std::accumulate(u_times.begin(), u_times.end(), 0.0) / u_times.size()
-                      << std::endl;
-            std::cout << "Average w_kernel: " << std::accumulate(w_times.begin(), w_times.end(), 0.0) / w_times.size()
-                      << std::endl;
-            std::cout << "Average v_kernel: " << std::accumulate(v_times.begin(), v_times.end(), 0.0) / v_times.size()
-                      << std::endl;
-            std::cout << "Average it time: " << std::accumulate(it_times.begin(), it_times.end(), 0.0) / it_times.size()
-                      << std::endl;
+//            std::cout << "Average h_kernel: " << std::accumulate(h_times.begin(), h_times.end(), 0.0) / h_times.size()
+//                      << std::endl;
+//            std::cout << "Average u_kernel: " << std::accumulate(u_times.begin(), u_times.end(), 0.0) / u_times.size()
+//                      << std::endl;
+//            std::cout << "Average w_kernel: " << std::accumulate(w_times.begin(), w_times.end(), 0.0) / w_times.size()
+//                      << std::endl;
+//            std::cout << "Average v_kernel: " << std::accumulate(v_times.begin(), v_times.end(), 0.0) / v_times.size()
+//                      << std::endl;
+//            std::cout << "Average it time: " << std::accumulate(it_times.begin(), it_times.end(), 0.0) / it_times.size()
+//                      << std::endl;
         }
 
         if (it_count % save_every == 0) {
@@ -328,6 +327,7 @@ void process_one_config_cuda(const char *cnf_path) {
             cudaMemcpy(U, d_old_U, grid_size_bytes, cudaMemcpyDeviceToHost);
             cudaMemcpy(W, d_old_W, grid_size_bytes, cudaMemcpyDeviceToHost);
             cudaMemcpy(V, d_old_V, grid_size_bytes, cudaMemcpyDeviceToHost);
+            cudaDeviceSynchronize();
 
             print_min_max_values(U, "u", sim_params);
             print_min_max_values(V, "v", sim_params);

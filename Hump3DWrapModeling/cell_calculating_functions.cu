@@ -44,6 +44,20 @@ H_point(Stencil3D *__restrict__ U, SimulationParams *params) {
     return U->center.w - c * (U->center.y + mu(U->center.x, U->center.z, params));
 }
 
+// H_{i, j, k}^{t+1} =& H_{i, j, k} + \Delta t \bigg( \big[H_{i, j, k} + c(\theta + \mu_{i, j, k})\big]^+ \bigg(\dfrac{H_{i, j, k}
+// - H_{i-1, j, k}}{h_x}\bigg) +
+// &+ \big[H_{i, j, k} + c(\theta + \mu_{i, j, k})]^- \bigg(\dfrac{H_{i+1, j, k} - H_{i, j, k}}{h_x}\bigg) +
+// & + [(H_{i, j, k} + c(\theta + \mu_{i, j, k}))\frac{\partial \mu_{i, j, k}}{\partial \xi_1} +
+// w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2} - v_{i, j, k}^{\dagger}\big]^+\bigg(\dfrac{H_{i, j, k}
+// - H_{i, j-1, k}}{h_y} \bigg) +
+// & + [(H_{i, j, k} + c(\theta + \mu_{i, j, k}))\frac{\partial \mu_{i, j, k}}{\partial \xi_1} + \
+// w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2} - v_{i, j, k}^{\dagger}\big]^-\bigg(\dfrac{H_{i, j+1, k}
+// - H_{i, j, k}}{h_y} \bigg)
+// & + {[w_{i, j, k}^{\dagger}]}^+\bigg(\dfrac{H_{i, j, k} - H_{i, j, k-1}}{h_z} \bigg) + {[w_{i, j, k}^{\dagger}]}^-\bigg(\dfrac{H_{i, j, k+1}
+// - H_{i, j, k}}{h_z} \bigg) +
+// & + v_{i, j, k}^{\dagger}c + \dfrac{\partial p_2^{\text{II}}}{\partial \xi_1}\bigg|_{\tau=0} - \bigg[\dfrac{H_{i, j, k+1}
+// - H_{i, j, k}}{{h_y}^2} \bigg]
+// \bigg),
 __device__ double
 H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, const double dp,
         SimulationParams *params) {
@@ -75,6 +89,20 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
     );
 }
 
+// {w_{i, j, k}^{\dagger}}^{t+1} =& w_{i, j, k}^{\dagger} + \Delta t \bigg(
+// {[w_{i, j, k}^{\dagger}]}^+\bigg(\dfrac{w_{i, j, k}^{\dagger} - w_{i, j, k-1}^{\dagger}}{h_z} \bigg)
+// + {[w_{i, j, k}^{\dagger}]}^-\bigg(\dfrac{w_{i, j, k+1}^{\dagger}
+// - w_{i, j, k}^{\dagger}}{h_z} \bigg) + \\ & +
+// \big[H_{i, j, k} + c(\theta + \mu)\big]^+ \bigg(\dfrac{w_{i, j, k}^{\dagger} - w_{i-1, j, k}^{\dagger}}{h_x}\bigg) +
+// +  \big[H_{i, j, k} + c(\theta + \mu)]^- \bigg(\dfrac{w_{i+1, j, k}^{\dagger} - w_{i, j, k}^{\dagger}}{h_x}\bigg) +
+// + {\big[ v_{i, j, k}^{\dagger} + w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2}
+// + \frac{\partial \mu_{i, j, k}}{\partial \xi_2}(H_{i, j, k}
+// + c(\theta + \mu_{i, j, k}))\big]}^+\bigg(\dfrac{w_{i, j, k}^{\dagger} - w_{i, j-1, k}^{\dagger}}{h_y} \bigg) +
+// + {\big[ v_{i, j, k}^{\dagger} + w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2}
+// + \frac{\partial \mu_{i, j, k}}{\partial \xi_2}(H_{i, j, k} +
+// + c(\theta + \mu_{i, j, k}))\big]}^-\bigg(\dfrac{w_{i, j+1, k}^{\dagger} - w_{i, j, k}^{\dagger}}{h_y} \bigg)
+// - \bigg[\dfrac{w_{i, j, k+1}^{\dagger} - w_{i, j, k}^{\dagger}}{{h_z}^2} \big]
+//\bigg),
 __device__ double
 W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params) {
     return W->center.w
@@ -95,7 +123,10 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->dy_r())
             - W->dy2());
 }
-
+// v^{\dagger} =- \int_{0}^{\theta}\bigg(\dfrac{\partial u^{\dagger}}{\partial \xi_1} -
+// \dfrac{\partial \mu}{\partial \xi_1}\dfrac{\partial u^{\dagger}}{\partial \theta} +
+// \dfrac{\partial w^{\dagger}}{\partial \xi_2} -
+// \dfrac{\partial \mu}{\partial \xi_2}\dfrac{\partial w^{\dagger}}{\partial \theta} \bigg)d\theta'
 __device__ double v_func(Stencil3D *__restrict__ U, Stencil3D *__restrict__ W, SimulationParams *params) {
     return U->dx_c()
            - mu_derivative(U->center.x, U->center.z, 0, params) * U->dy_c()
