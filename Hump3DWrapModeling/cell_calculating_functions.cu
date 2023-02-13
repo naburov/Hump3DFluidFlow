@@ -20,19 +20,39 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
            derivative_right * (a - abs(a)) / 2;
 }
 
+//tanh
+__device__ __host__ double sech(double x) {
+    return 1. / cosh(x);
+}
+
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-    return params->A * exp(-pow(xi1, 2.0) * params->alpha
-                           - pow(xi2, 2.0) * params->beta);
+    return params->A * 1. / 4 * (-tanh((xi1 - 2) * (xi1 + 2) + 1)) * (-tanh((xi2 - 2) * (xi2 + 2) + 1));
 }
 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-    if (dim == 0)
-        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
-                                                           - pow(xi2, 2.0) * params->beta);
-    else
-        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
-                                                          - pow(xi2, 2.0) * params->beta);
+    if (dim == 0) {
+        auto t = sech((xi1 - 2) * (xi1 + 2)) * sech((xi1 - 2) * (xi1 + 2));
+        return -1. / 2 * xi1 * t * (1 - tanh((xi2 + 2) * (xi2 - 2))) * params->A;
+    } else {
+        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
+        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
+    }
 }
+
+// exponential
+//__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
+//    return params->A * exp(-pow(xi1, 2.0) * params->alpha
+//                           - pow(xi2, 2.0) * params->beta);
+//}
+
+//__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
+//    if (dim == 0)
+//        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
+//                                                           - pow(xi2, 2.0) * params->beta);
+//    else
+//        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
+//                                                          - pow(xi2, 2.0) * params->beta);
+//}
 
 __device__ double
 U_point(Stencil3D *__restrict__ H, SimulationParams *params) {
@@ -128,9 +148,9 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
 // \dfrac{\partial w^{\dagger}}{\partial \xi_2} -
 // \dfrac{\partial \mu}{\partial \xi_2}\dfrac{\partial w^{\dagger}}{\partial \theta} \bigg)d\theta'
 __device__ double v_func(Stencil3D *__restrict__ U, Stencil3D *__restrict__ W, SimulationParams *params) {
-    return U->dx_c()
-           - mu_derivative(U->center.x, U->center.z, 0, params) * U->dy_c()
-           + W->dz_c()
-           - mu_derivative(U->center.x, U->center.z, 1, params) * W->dy_c();
+    return U->dx_r()
+           - mu_derivative(U->center.x, U->center.z, 0, params) * U->dy_r()
+           + W->dz_r()
+           - mu_derivative(U->center.x, U->center.z, 1, params) * W->dy_r();
 }
 
