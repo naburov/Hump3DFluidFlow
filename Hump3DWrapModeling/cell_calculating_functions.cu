@@ -26,16 +26,20 @@ __device__ __host__ double sech(double x) {
 }
 
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-    return params->A * 1. / 4 * (-tanh((xi1 - 2) * (xi1 + 2) + 1)) * (-tanh((xi2 - 2) * (xi2 + 2) + 1));
+    return params->A * 1. / 4 *
+           (-tanh(1. / 2 * (xi1 - 2) * (xi1 + 2)) + 1) *
+           (-tanh(1. / 2 * (xi2 - 2) * (xi2 + 2)) + 1);
 }
 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
     if (dim == 0) {
-        auto t = sech((xi1 - 2) * (xi1 + 2)) * sech((xi1 - 2) * (xi1 + 2));
-        return -1. / 2 * xi1 * t * (1 - tanh((xi2 + 2) * (xi2 - 2))) * params->A;
+        auto t = sech(1. / 2 * (xi1 - 2) * (xi1 + 2)) * sech(1. / 2 * (xi1 - 2) * (xi1 + 2));
+        auto t1 = 1./2 * (xi1 - 2) + 1./2 * (xi1 + 2);
+        return -1. / 4 * t1 * t * (1 - tanh((1./2 * xi2 + 2) * (xi2 - 2))) * params->A;
     } else {
-        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
-        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
+        auto t = sech(1./2 * (xi2 - 2) * (xi2 + 2)) * sech(1./2 * (xi2 - 2) * (xi2 + 2));
+        auto t1 = 1./2 * (xi2 - 2) + 1./2 * (xi2 + 2);
+        return -1. / 4 * t1 * t * (1 - tanh(1./2 * (xi1 + 2) * (xi1 - 2))) * params->A;
     }
 }
 
