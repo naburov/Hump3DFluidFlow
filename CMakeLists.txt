@@ -29,16 +29,14 @@ add_executable(Hump3DFluidFlow
         Hump3DWrapModeling/export_functions.h
         Hump3DWrapModeling/export_functions.cpp
         Hump3DWrapModeling/cell_calculating_functions.cuh
-        Hump3DWrapModeling/main.cu
         Hump3DWrapModeling/cell_calculating_functions.cu
         Hump3DWrapModeling/3D_stencil.cuh
-        Hump3DWrapModeling/test_kernels.cu
-        Hump3DWrapModeling/test_kernels.cuh
-        Hump3DWrapModeling/calculating_kernels.cu
         Hump3DWrapModeling/calculating_kernels.cuh
+        Hump3DWrapModeling/calculating_kernels.cu
         Hump3DWrapModeling/cuda_consts.cuh
         Hump3DWrapModeling/Config.cpp
-        Hump3DWrapModeling/Config.h)
+        Hump3DWrapModeling/Config.h
+        Hump3DWrapModeling/main.cu)
 
 set_target_properties(Hump3DFluidFlow PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(Hump3DFluidFlow PRIVATE ${VTK_LIBRARIES})

@@ -21,38 +21,38 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
 }
 
 //tanh
-__device__ __host__ double sech(double x) {
-    return 1. / cosh(x);
-}
-
-__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-    return params->A * 1. / 4 * (-tanh((xi1 - 2) * (xi1 + 2) + 1)) * (-tanh((xi2 - 2) * (xi2 + 2) + 1));
-}
-
-__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-    if (dim == 0) {
-        auto t = sech((xi1 - 2) * (xi1 + 2)) * sech((xi1 - 2) * (xi1 + 2));
-        return -1. / 2 * xi1 * t * (1 - tanh((xi2 + 2) * (xi2 - 2))) * params->A;
-    } else {
-        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
-        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
-    }
+//__device__ __host__ double sech(double x) {
+//    return 1. / cosh(x);
+//}
+//
+//__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
+//    return params->A * 1. / 4 * (-tanh((xi1 - 2) * (xi1 + 2) + 1)) * (-tanh((xi2 - 2) * (xi2 + 2) + 1));
+//}
+//
+//__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
+//    if (dim == 0) {
+//        auto t = sech((xi1 - 2) * (xi1 + 2)) * sech((xi1 - 2) * (xi1 + 2));
+//        return -1. / 2 * xi1 * t * (1 - tanh((xi2 + 2) * (xi2 - 2))) * params->A;
+//    } else {
+//        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
+//        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
+//    }
 }
 
 // exponential
-//__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-//    return params->A * exp(-pow(xi1, 2.0) * params->alpha
-//                           - pow(xi2, 2.0) * params->beta);
-//}
+__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
+    return params->A * exp(-pow(xi1, 2.0) * params->alpha
+                           - pow(xi2, 2.0) * params->beta);
+}
 
-//__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-//    if (dim == 0)
-//        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
-//                                                           - pow(xi2, 2.0) * params->beta);
-//    else
-//        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
-//                                                          - pow(xi2, 2.0) * params->beta);
-//}
+__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
+    if (dim == 0)
+        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
+                                                           - pow(xi2, 2.0) * params->beta);
+    else
+        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
+                                                          - pow(xi2, 2.0) * params->beta);
+}
 
 __device__ double
 U_point(Stencil3D *__restrict__ H, SimulationParams *params) {
