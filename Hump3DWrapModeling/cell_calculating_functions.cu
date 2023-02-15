@@ -35,7 +35,7 @@ __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, Simula
     if (dim == 0) {
         auto t = sech(1. / 2 * (xi1 - 2) * (xi1 + 2)) * sech(1. / 2 * (xi1 - 2) * (xi1 + 2));
         auto t1 = 1./2 * (xi1 - 2) + 1./2 * (xi1 + 2);
-        return -1. / 4 * t1 * t * (1 - tanh((1./2 * xi2 + 2) * (xi2 - 2))) * params->A;
+        return -1. / 4 * t1 * t * (1 - tanh(1./2 * (xi2 + 2) * (xi2 - 2))) * params->A;
     } else {
         auto t = sech(1./2 * (xi2 - 2) * (xi2 + 2)) * sech(1./2 * (xi2 - 2) * (xi2 + 2));
         auto t1 = 1./2 * (xi2 - 2) + 1./2 * (xi2 + 2);
