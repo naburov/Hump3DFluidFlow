@@ -37,7 +37,7 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
 //        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
 //        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
 //    }
-}
+//}
 
 // exponential
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
