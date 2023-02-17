@@ -29,7 +29,7 @@ void process_one_config(const char *cnf_path);
 #endif
 
 int main(int argc, char *argv[]) {
-    omp_set_num_threads(8);
+    omp_set_num_threads(24);
 
     std::vector<std::string> cnfs;
     for (int i = 1; i < argc; ++i) {

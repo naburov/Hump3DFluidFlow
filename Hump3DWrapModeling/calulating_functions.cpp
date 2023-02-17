@@ -327,18 +327,41 @@ double*** V(double*** W, double*** U, SimulationParams params) {
 	return next;
 }
 
+//tanh
+double sech(double x) {
+    return 1. / cosh(x);
+}
+
 double mu(double xi1, double xi2, SimulationParams params) {
-	return params.A * std::exp(
-		-std::pow(xi1, 2.0) * params.alpha -
-		std::pow(xi2, 2.0) * params.beta);
+    return params.A * 1. / 4 *
+           (-tanh(1. / 2 * (xi1 - 2) * (xi1 + 2)) + 1) *
+           (-tanh(1. / 2 * (xi2 - 2) * (xi2 + 2)) + 1);
 }
 
 double mu_derivative(double xi1, double xi2, int dim, SimulationParams params) {
-	if (dim == 0)
-		return -2 * params.A * xi1 * params.alpha * std::exp(-std::pow(xi1, 2.0) * params.alpha - std::pow(xi2, 2.0) * params.beta);
-	else
-		return -2 * params.A * xi2 * params.beta * std::exp(-std::pow(xi1, 2.0) * params.alpha - std::pow(xi2, 2.0) * params.beta);
+    if (dim == 0) {
+        auto t = sech(1. / 2 * (xi1 - 2) * (xi1 + 2)) * sech(1. / 2 * (xi1 - 2) * (xi1 + 2));
+        auto t1 = 1./2 * (xi1 - 2) + 1./2 * (xi1 + 2);
+        return -1. / 4 * t1 * t * (1 - tanh(1./2 * (xi2 + 2) * (xi2 - 2))) * params.A;
+    } else {
+        auto t = sech(1./2 * (xi2 - 2) * (xi2 + 2)) * sech(1./2 * (xi2 - 2) * (xi2 + 2));
+        auto t1 = 1./2 * (xi2 - 2) + 1./2 * (xi2 + 2);
+        return -1. / 4 * t1 * t * (1 - tanh(1./2 * (xi1 + 2) * (xi1 - 2))) * params.A;
+    }
 }
+
+//double mu(double xi1, double xi2, SimulationParams params) {
+//	return params.A * std::exp(
+//		-std::pow(xi1, 2.0) * params.alpha -
+//		std::pow(xi2, 2.0) * params.beta);
+//}
+//
+//double mu_derivative(double xi1, double xi2, int dim, SimulationParams params) {
+//	if (dim == 0)
+//		return -2 * params.A * xi1 * params.alpha * std::exp(-std::pow(xi1, 2.0) * params.alpha - std::pow(xi2, 2.0) * params.beta);
+//	else
+//		return -2 * params.A * xi2 * params.beta * std::exp(-std::pow(xi1, 2.0) * params.alpha - std::pow(xi2, 2.0) * params.beta);
+//}
 
 double second_derivative(double*** arr, int dim, int i, int j, int k, double delta, int size, SimulationParams params) {
 	int lids[] = { i, j, k };
