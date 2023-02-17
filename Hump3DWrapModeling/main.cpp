@@ -207,7 +207,7 @@ void process_one_config(const char *cnf_path) {
             print_min_max_values(h_next, "h", sim_params);
         }
 
-        stop = max_norm(u, u_next, sim_params) < eps && max_norm(v, v_next, sim_params) < eps && max_norm(w, w_next, sim_params) < eps;
+//        stop = max_norm(u, u_next, sim_params) < eps && max_norm(v, v_next, sim_params) < eps && max_norm(w, w_next, sim_params) < eps;
         stop |= it_count > max_steps;
 
         auto ***old_u = u;
