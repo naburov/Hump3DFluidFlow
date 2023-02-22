@@ -25,21 +25,23 @@ void process_one_config(const char *cnf_path);
 #elif _WIN32
 #include "direct.h"
 #elif __linux__
+
 #include <sys/stat.h>
+
 #endif
 
 int main(int argc, char *argv[]) {
     omp_set_num_threads(24);
 
     std::vector<std::string> cnfs;
-    for (int i = 1; i < argc; ++i) {
+    for (int                 i = 1; i < argc; ++i) {
         cnfs.emplace_back(argv[i]);
     }
 
     // /tmp/tmp.SJNETVCrGC/cmake-build-release-x86_64-llvm-homewsl/Hump3DFluidFlow
     // /tmp/tmp.SJNETVCrGC/configs/testconf
 
-    for (const auto & cnf : cnfs) {
+    for (const auto &cnf: cnfs) {
         std::cout << "Processing cnf " << cnf << std::endl;
         process_one_config(cnf.c_str());
     }
@@ -51,7 +53,7 @@ void process_one_config(const char *cnf_path) {
     auto cnf = Config(cnf_path);
     cnf.print();
 
-    auto t_dims = cnf.get_grid_dimensions();
+    auto      t_dims = cnf.get_grid_dimensions();
     const int dims[] = {t_dims[0], t_dims[1], t_dims[2]};
 
     auto t_sizes = cnf.get_grid_sizes();
@@ -65,9 +67,9 @@ void process_one_config(const char *cnf_path) {
             {t_dims[0], t_dims[1], t_dims[2]},
             {t_sizes[1], t_sizes[5], t_sizes[3]},
             {
-            (t_sizes[0] - t_sizes[1]) / (t_dims[0]),
-            (t_sizes[4] - t_sizes[5]) / (t_dims[1]),
-            (t_sizes[2] - t_sizes[3]) / (t_dims[2])
+                    (t_sizes[0] - t_sizes[1]) / (t_dims[0]),
+                    (t_sizes[4] - t_sizes[5]) / (t_dims[1]),
+                    (t_sizes[2] - t_sizes[3]) / (t_dims[2])
             },
             func_params[0],
             func_params[1],
@@ -75,25 +77,40 @@ void process_one_config(const char *cnf_path) {
             time_step
     };
 
-    auto t_params = cnf.get_saving_params();
-    auto save_every = t_params[0];
+    auto t_params    = cnf.get_saving_params();
+    auto save_every  = t_params[0];
     auto print_every = t_params[1];
 
-    // initalize U
-    auto ***u = new double **[dims[0]];
-    for (size_t i = 0; i < dims[0]; i++) {
+    auto        ***u = new double **[dims[0]];
+    for (size_t i    = 0; i < dims[0]; i++) {
         u[i] = new double *[dims[1]];
         for (size_t j = 0; j < dims[1]; j++)
-            u[i][j] = new double[dims[2]];
+            u[i][j]   = new double[dims[2]];
 
     }
 
-    std::vector<double> s;
+    // initalize U
+    auto        ***true_u = new double **[dims[0]];
+    for (size_t i         = 0; i < dims[0]; i++) {
+        true_u[i] = new double *[dims[1]];
+        for (size_t j    = 0; j < dims[1]; j++)
+            true_u[i][j] = new double[dims[2]];
+    }
+
     for (size_t i = 0; i < dims[0]; i++)
+        for (size_t k = 0; k < dims[2]; k++) {
+            for (size_t j = 0; j < dims[1]; j++) {
+                auto theta = t_sizes[5] + j * sim_params.deltas[1];
+                true_u[i][j][k] = f_second * theta;
+            }
+        }
+
+    std::vector<double> s;
+    for (size_t         i = 0; i < dims[0]; i++)
         for (size_t k = 0; k < dims[2]; k++) {
             auto xi1 = i * sim_params.deltas[0] + t_sizes[1];
             auto xi2 = k * sim_params.deltas[2] + t_sizes[3];
-            auto j = 0;
+            auto j   = 0;
             for (j = 0; t_sizes[5] + sim_params.deltas[1] * (double) j < 5.0; j++) {
                 auto theta = t_sizes[5] + j * sim_params.deltas[1];
                 u[i][j][k] = f_second * theta * (1 + 0.2 * mu(xi1, xi2, sim_params));
@@ -110,22 +127,21 @@ void process_one_config(const char *cnf_path) {
     //std::cout << "u max " << *std::max_element(s.begin(), s.end()) << std::endl;
 
     // initialize W
-    auto ***w = new double **[dims[0]];
-    for (size_t i = 0; i < dims[0]; i++) {
+    auto        ***w = new double **[dims[0]];
+    for (size_t i    = 0; i < dims[0]; i++) {
         w[i] = new double *[dims[1]];
         for (size_t j = 0; j < dims[1]; j++) {
             w[i][j] = new double[dims[2]];
             std::fill_n(w[i][j], dims[2], 0.0);
         }
-
     }
 
     s.clear();
     for (size_t i = 0; i < dims[0]; i++) {
-        auto xi1 = i * sim_params.deltas[0] + t_sizes[1];
-        for (size_t j = 0; j < dims[1]; j++) {
+        auto        xi1 = i * sim_params.deltas[0] + t_sizes[1];
+        for (size_t j   = 0; j < dims[1]; j++) {
             auto theta = t_sizes[5] + j * sim_params.deltas[1];
-            auto k = 0;
+            auto k     = 0;
             for (k = 0; t_sizes[3] + sim_params.deltas[2] * (double) k < 0.0; k++) {
                 auto xi2 = k * sim_params.deltas[2] + t_sizes[3];
                 w[i][j][k] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
@@ -146,11 +162,11 @@ void process_one_config(const char *cnf_path) {
 
     //std::cout << "-------------" << std::endl;
 // if memory will leak - add delete
-    auto stop = false;
+    auto stop      = false;
     auto max_steps = cnf.get_max_steps();
-    auto it_count = 0;
+    auto it_count  = 0;
 
-    auto t = time(nullptr);
+    auto t  = time(nullptr);
     auto tm = *localtime(&t);
 
     std::ostringstream oss;
@@ -170,8 +186,8 @@ void process_one_config(const char *cnf_path) {
 
     ss.str(std::string());
     ss << filename << "-cnf";
-    std::ifstream  src(cnf_path, std::ios::binary);
-    std::ofstream  dst(ss.str(),   std::ios::binary);
+    std::ifstream src(cnf_path, std::ios::binary);
+    std::ofstream dst(ss.str(), std::ios::binary);
     dst << src.rdbuf();
 
     //print_array(v, dims);
@@ -205,6 +221,8 @@ void process_one_config(const char *cnf_path) {
             print_min_max_values(v_next, "v", sim_params);
             print_min_max_values(w_next, "w", sim_params);
             print_min_max_values(h_next, "h", sim_params);
+            auto norm = max_norm(u, true_u, sim_params);
+            std::cout << "max norm is: " << norm << std::endl;
         }
 
 //        stop = max_norm(u, u_next, sim_params) < eps && max_norm(v, v_next, sim_params) < eps && max_norm(w, w_next, sim_params) < eps;
@@ -233,7 +251,7 @@ void process_one_config(const char *cnf_path) {
         if (it_count % save_every == 0) {
             ss.str(std::string());
             ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_vector_field(ss.str(), u, v, w,sim_params);
+            export_vector_field(ss.str(), u, v, w, sim_params);
 
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             ss.str(std::string());
@@ -245,11 +263,11 @@ void process_one_config(const char *cnf_path) {
 
             ss.str(std::string());
             ss << filename << "_u_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u,  0, sim_params);
+            export_single_line(ss.str(), u, 0, sim_params);
 
             ss.str(std::string());
             ss << filename << "_u_theta1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u,  1, sim_params);
+            export_single_line(ss.str(), u, 1, sim_params);
 
             ss.str(std::string());
             ss << filename << "_u_theta_max-1_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
@@ -257,7 +275,7 @@ void process_one_config(const char *cnf_path) {
 
             ss.str(std::string());
             ss << filename << "_u_theta_max_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
-            export_single_line(ss.str(), u,  t_sizes[4] - sim_params.deltas[1], sim_params);
+            export_single_line(ss.str(), u, t_sizes[4] - sim_params.deltas[1], sim_params);
 
             ss.str(std::string());
             ss << filename << "_v_theta0_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
