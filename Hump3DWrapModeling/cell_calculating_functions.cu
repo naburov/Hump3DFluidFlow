@@ -98,8 +98,8 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     H->dz_l(),
                     H->dz_r())
             + dp * c
-            - V->center.w * c
-            + H->dy2()
+            + V->center.w * c
+            - H->dy2()
     );
 }
 
@@ -135,7 +135,7 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
                     W->dy_l(),
                     W->dy_r())
-            + W->dy2());
+            - W->dy2());
 }
 // v^{\dagger} =- \int_{0}^{\theta}\bigg(\dfrac{\partial u^{\dagger}}{\partial \xi_1} -
 // \dfrac{\partial \mu}{\partial \xi_1}\dfrac{\partial u^{\dagger}}{\partial \theta} +
