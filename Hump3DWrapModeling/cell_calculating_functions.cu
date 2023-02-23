@@ -72,20 +72,6 @@ H_point(Stencil3D *__restrict__ U, SimulationParams *params) {
     return U->center.w - c * (U->center.y + mu(U->center.x, U->center.z, params));
 }
 
-// H_{i, j, k}^{t+1} =& H_{i, j, k} + \Delta t \bigg( \big[H_{i, j, k} + c(\theta + \mu_{i, j, k})\big]^+ \bigg(\dfrac{H_{i, j, k}
-// - H_{i-1, j, k}}{h_x}\bigg) +
-// &+ \big[H_{i, j, k} + c(\theta + \mu_{i, j, k})]^- \bigg(\dfrac{H_{i+1, j, k} - H_{i, j, k}}{h_x}\bigg) +
-// & + [(H_{i, j, k} + c(\theta + \mu_{i, j, k}))\frac{\partial \mu_{i, j, k}}{\partial \xi_1} +
-// w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2} - v_{i, j, k}^{\dagger}\big]^+\bigg(\dfrac{H_{i, j, k}
-// - H_{i, j-1, k}}{h_y} \bigg) +
-// & + [(H_{i, j, k} + c(\theta + \mu_{i, j, k}))\frac{\partial \mu_{i, j, k}}{\partial \xi_1} + \
-// w_{i, j, k}^{\dagger}\frac{\partial \mu_{i, j, k}}{\partial \xi_2} - v_{i, j, k}^{\dagger}\big]^-\bigg(\dfrac{H_{i, j+1, k}
-// - H_{i, j, k}}{h_y} \bigg)
-// & + {[w_{i, j, k}^{\dagger}]}^+\bigg(\dfrac{H_{i, j, k} - H_{i, j, k-1}}{h_z} \bigg) + {[w_{i, j, k}^{\dagger}]}^-\bigg(\dfrac{H_{i, j, k+1}
-// - H_{i, j, k}}{h_z} \bigg) +
-// & + v_{i, j, k}^{\dagger}c + \dfrac{\partial p_2^{\text{II}}}{\partial \xi_1}\bigg|_{\tau=0} - \bigg[\dfrac{H_{i, j, k+1}
-// - H_{i, j, k}}{{h_y}^2} \bigg]
-// \bigg),
 __device__ double
 H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, const double dp,
         SimulationParams *params) {
@@ -95,23 +81,23 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
     // H->center.x = xi1
     // H->center.z = xi2
     return H->center.w
-           + params->timeStep * (
-            - relaxed_derivative(
+           - params->timeStep * (
+            relaxed_derivative(
                     H->center.w + c * (theta + mu(xi1, xi2, params)),
                     H->dx_l(),
                     H->dx_r())
-            + relaxed_derivative(
-                    H->center.w + c * (theta + mu(xi1, xi2, params)) *
-                                  mu_derivative(xi1, xi2, 0, params) +
+            - relaxed_derivative(
+                    (H->center.w + c * (theta + mu(xi1, xi2, params))) *
+                    mu_derivative(xi1, xi2, 0, params) +
                     W->center.w * mu_derivative(xi1, xi2, 1, params) -
                     V->center.w,
                     H->dy_l(),
                     H->dy_r())
-            - relaxed_derivative(
-                    (W->center.w),
+            + relaxed_derivative(
+                    W->center.w,
                     H->dz_l(),
                     H->dz_r())
-            - dp * c
+            + dp * c
             - V->center.w * c
             + H->dy2()
     );
@@ -134,16 +120,16 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
 __device__ double
 W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params) {
     return W->center.w
-           + params->timeStep * (
-            - relaxed_derivative(
+           - params->timeStep * (
+            relaxed_derivative(
                     W->center.w,
                     W->dz_l(),
                     W->dz_r())
-            - relaxed_derivative(
+            + relaxed_derivative(
                     H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params)),
                     W->dx_l(),
                     W->dx_r())
-            + relaxed_derivative(
+            - relaxed_derivative(
                     - V->center.w + W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) +
                     mu_derivative(H->center.x, H->center.z, 0, params) *
                     (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
