@@ -130,9 +130,10 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->dx_l(),
                     W->dx_r())
             - relaxed_derivative(
-                    - V->center.w + W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) +
+                    W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) +
                     mu_derivative(H->center.x, H->center.z, 0, params) *
-                    (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
+                    (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params)))
+                    - V->center.w,
                     W->dy_l(),
                     W->dy_r())
             - W->dy2());
