@@ -1,3 +1,5 @@
+
+
 #include "SimulationParams.h"
 #include "3D_stencil.cuh"
 #include "cuda_consts.cuh"
@@ -26,12 +28,14 @@ __device__ __host__ double sech(double x) {
 }
 
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
+//    return 0.0;
     return params->A * 1. / 4 *
            (-tanh(1. / 2 * (xi1 - 2) * (xi1 + 2)) + 1) *
            (-tanh(1. / 2 * (xi2 - 2) * (xi2 + 2)) + 1);
 }
 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
+//    return 0.0;
     if (dim == 0) {
         auto t = sech(1. / 2 * (xi1 - 2) * (xi1 + 2)) * sech(1. / 2 * (xi1 - 2) * (xi1 + 2));
         auto t1 = 1./2 * (xi1 - 2) + 1./2 * (xi1 + 2);
@@ -91,9 +95,9 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
     // H->center.x = xi1
     // H->center.z = xi2
     return H->center.w
-           - params->timeStep * (
+           + params->timeStep * (
             relaxed_derivative(
-                    H->center.w + c * (theta + mu(xi1, xi2, params)),
+                    -(H->center.w + c * (theta + mu(xi1, xi2, params))),
                     H->dx_l(),
                     H->dx_r())
             + relaxed_derivative(
@@ -104,12 +108,12 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     H->dy_l(),
                     H->dy_r())
             + relaxed_derivative(
-                    W->center.w,
+                    -(W->center.w),
                     H->dz_l(),
                     H->dz_r())
             - dp * c
-            + V->center.w * c
-            - H->dy2()
+            - V->center.w * c
+            + H->dy2()
     );
 }
 
@@ -130,13 +134,13 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
 __device__ double
 W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params) {
     return W->center.w
-           - params->timeStep * (
+           + params->timeStep * (
             relaxed_derivative(
-                    W->center.w,
+                    -(W->center.w),
                     W->dz_l(),
                     W->dz_r())
             + relaxed_derivative(
-                    H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params)),
+                    -(H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
                     W->dx_l(),
                     W->dx_r())
             + relaxed_derivative(
@@ -145,7 +149,7 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
                     W->dy_l(),
                     W->dy_r())
-            - W->dy2());
+            + W->dy2());
 }
 // v^{\dagger} =- \int_{0}^{\theta}\bigg(\dfrac{\partial u^{\dagger}}{\partial \xi_1} -
 // \dfrac{\partial \mu}{\partial \xi_1}\dfrac{\partial u^{\dagger}}{\partial \theta} +
