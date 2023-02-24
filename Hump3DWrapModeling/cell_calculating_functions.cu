@@ -111,7 +111,7 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->center.w,
                     H->dz_l(),
                     H->dz_r())
-            - dp * c
+            + dp * c
             + V->center.w * c
             - H->dy2()
     );
