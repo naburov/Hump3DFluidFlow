@@ -26,17 +26,17 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
 //}
 //
 //__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-//    return params->A * 1. / 4 * (-tanh((xi1 - 2) * (xi1 + 2) + 1)) * (-tanh((xi2 - 2) * (xi2 + 2) + 1));
+//    return params->A * exp(-pow(xi1, 2.0) * params->alpha
+//                           - pow(xi2, 2.0) * params->beta);
 //}
-//
+
 //__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-//    if (dim == 0) {
-//        auto t = sech((xi1 - 2) * (xi1 + 2)) * sech((xi1 - 2) * (xi1 + 2));
-//        return -1. / 2 * xi1 * t * (1 - tanh((xi2 + 2) * (xi2 - 2))) * params->A;
-//    } else {
-//        auto t = sech((xi2 - 2) * (xi2 + 2)) * sech((xi2 - 2) * (xi2 + 2));
-//        return -1. / 2 * xi2 * t * (1 - tanh((xi1 + 2) * (xi1 - 2))) * params->A;
-//    }
+//    if (dim == 0)
+//        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
+//                                                           - pow(xi2, 2.0) * params->beta);
+//    else
+//        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
+//                                                          - pow(xi2, 2.0) * params->beta);
 //}
 
 // exponential
@@ -93,9 +93,9 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     H->dx_l(),
                     H->dx_r())
             + relaxed_derivative(
-                    (H->center.w + c * (theta + mu(xi1, xi2, params))) *
+                    - (H->center.w + c * (theta + mu(xi1, xi2, params))) *
                     mu_derivative(xi1, xi2, 0, params) +
-                    W->center.w * mu_derivative(xi1, xi2, 1, params) -
+                     - W->center.w * mu_derivative(xi1, xi2, 1, params) +
                     V->center.w,
                     H->dy_l(),
                     H->dy_r())
@@ -103,7 +103,7 @@ H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->center.w,
                     H->dz_l(),
                     H->dz_r())
-            - dp * c
+            + dp * c
             + V->center.w * c
             - H->dy2()
     );
@@ -136,9 +136,9 @@ W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restr
                     W->dx_l(),
                     W->dx_r())
             + relaxed_derivative(
-                    V->center.w + W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) +
-                    mu_derivative(H->center.x, H->center.z, 0, params) *
-                    (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))),
+                    - W->center.w * mu_derivative(H->center.x, H->center.z, 1, params) +
+                    - mu_derivative(H->center.x, H->center.z, 0, params) *
+                    (H->center.w + c * (H->center.y + mu(H->center.x, H->center.z, params))) + V->center.w,
                     W->dy_l(),
                     W->dy_r())
             - W->dy2());

@@ -12,20 +12,22 @@ __global__ void w_init_kernel(double *w, SimulationParams *sim_params) {
     auto threadId = threadIdx.x + blockIdx.x * blockDim.x;
     if (threadId > sim_params->dims[0] * sim_params->dims[1] * sim_params->dims[2] - 1)
         return;
-    auto id    = indexof(threadId, sim_params);
-    auto xi1   = id.x * sim_params->deltas[0] + sim_params->mins[0];
-    auto theta = id.y * sim_params->deltas[1] + sim_params->mins[1];
-    auto xi2   = id.z * sim_params->deltas[2] + sim_params->mins[2];
+    auto id     = indexof(threadId, sim_params);
+    auto xi1    = id.x * sim_params->deltas[0] + sim_params->mins[0];
+    auto theta  = id.y * sim_params->deltas[1] + sim_params->mins[1];
+    auto xi2    = id.z * sim_params->deltas[2] + sim_params->mins[2];
 
     if (id.y == 0) {
         w[threadId] = 0;
         return;
     }
-
+//    w[threadId] = mu(xi1, xi2, sim_params) * theta * exp(-theta);
     if (xi2 < 0.0) {
         w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+        w[threadId] = 0.0;
     } else {
         w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+        w[threadId] = 0.0;
     }
 }
 
