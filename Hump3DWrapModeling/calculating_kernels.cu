@@ -21,14 +21,14 @@ __global__ void w_init_kernel(double *w, SimulationParams *sim_params) {
         w[threadId] = 0;
         return;
     }
-//    w[threadId] = mu(xi1, xi2, sim_params) * theta * exp(-theta);
-    if (xi2 < 0.0) {
-        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
-        w[threadId] = 0.0;
-    } else {
-        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
-        w[threadId] = 0.0;
-    }
+    w[threadId] = mu(xi1, xi2, sim_params) * theta * exp(-theta);
+//    if (xi2 < 0.0) {
+//        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+//        w[threadId] = 0.0;
+//    } else {
+//        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+//        w[threadId] = 0.0;
+//    }
 }
 
 
@@ -61,7 +61,7 @@ __global__ void h_kernel(const double *__restrict__ u, double *h, SimulationPara
         arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         auto xi1 = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = c * mu(xi1, xi2, sim_params);;
+        h[linear_index] = c * mu(xi1, xi2, sim_params);
         return;
     }
     if (arr_ids.y == 0) {
@@ -120,7 +120,7 @@ h_kernel(const double *__restrict__ old_h, const double *__restrict__ old_w, con
     Stencil3D v_point(old_v, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
 
     // looks like a mistake here
-    auto dp = old_v[indexof(arr_ids.x, sim_params->dims[1] - 1, arr_ids.z, sim_params)];
+    auto dp = -old_v[indexof(arr_ids.x, sim_params->dims[1] - 1, arr_ids.z, sim_params)];
     h[linear_index] =
             H_point(&h_point, &w_point, &v_point, dp, sim_params
             );
@@ -169,7 +169,7 @@ __global__ void v_func_kernel(const double *__restrict__ w, double *v, const dou
     auto arr_ids      = indexof(threadId, sim_params);
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
     if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
-        arr_ids.y == 0 || arr_ids.y == sim_params->dims[1] - 1 ||
+        arr_ids.y == 0 ||
         arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         v[linear_index] = 0.0;
         return;
@@ -188,7 +188,7 @@ __global__ void integrate_v_kernel(double *v_func, SimulationParams *sim_params)
     auto k = threadId % sim_params->dims[2];
 
     v_func[indexof(i, 0, k, sim_params)] = 0;
-    for (unsigned int j = 1; j < sim_params->dims[1] - 1; j++) {
+    for (unsigned int j = 1; j < sim_params->dims[1]; j++) {
         if (i == 0 || i == sim_params->dims[0] - 1 ||
             k == 0 || k == sim_params->dims[1] - 1) {
             v_func[indexof(i, j, k, sim_params)] = 0;
@@ -198,7 +198,7 @@ __global__ void integrate_v_kernel(double *v_func, SimulationParams *sim_params)
                 v_func[indexof(i, j - 1, k, sim_params)]
                 - sim_params->deltas[1] * v_func[indexof(i, j, k, sim_params)];
     }
-    v_func[indexof(i, sim_params->dims[1] - 1, k, sim_params)] = 0.0;
+//    v_func[indexof(i, sim_params->dims[1] - 1, k, sim_params)] = 0.0;
 }
 
 __global__ void w_kernel(const double *__restrict__ h, const double *__restrict__ old_w, const double *__restrict__ v,

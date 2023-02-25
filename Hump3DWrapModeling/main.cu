@@ -308,8 +308,9 @@ void process_one_config_cuda(const char *cnf_path) {
 //        it_count++;
 
         if (it_count++ % print_every == 0) {
+            std::time_t st = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
             std::cout << "-----------------------------------------------" << std::endl;
-            std::cout << " Starting iteration " << it_count << std::endl;
+            std::cout << " Starting iteration " << it_count << " at " << std::ctime(&st) << std::endl;
 //            std::cout << "Average h_kernel: " << std::accumulate(h_times.begin(), h_times.end(), 0.0) / h_times.size()
 //                      << std::endl;
 //            std::cout << "Average u_kernel: " << std::accumulate(u_times.begin(), u_times.end(), 0.0) / u_times.size()

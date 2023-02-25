@@ -1,3 +1,5 @@
+
+
 #include "SimulationParams.h"
 #include "3D_stencil.cuh"
 #include "cuda_consts.cuh"
@@ -19,25 +21,6 @@ __device__ double relaxed_derivative(double a, double derivative_left, double de
     return derivative_left * (a + abs(a)) / 2 +
            derivative_right * (a - abs(a)) / 2;
 }
-
-//tanh
-//__device__ __host__ double sech(double x) {
-//    return 1. / cosh(x);
-//}
-//
-//__device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-//    return params->A * exp(-pow(xi1, 2.0) * params->alpha
-//                           - pow(xi2, 2.0) * params->beta);
-//}
-
-//__device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-//    if (dim == 0)
-//        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
-//                                                           - pow(xi2, 2.0) * params->beta);
-//    else
-//        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
-//                                                          - pow(xi2, 2.0) * params->beta);
-//}
 
 // exponential
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
