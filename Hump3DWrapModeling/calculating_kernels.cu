@@ -120,7 +120,7 @@ h_kernel(const double *__restrict__ old_h, const double *__restrict__ old_w, con
     Stencil3D v_point(old_v, arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
 
     // looks like a mistake here
-    auto dp = old_v[indexof(arr_ids.x, sim_params->dims[1] - 1, arr_ids.z, sim_params)];
+    auto dp = -old_v[indexof(arr_ids.x, sim_params->dims[1] - 1, arr_ids.z, sim_params)];
     h[linear_index] =
             H_point(&h_point, &w_point, &v_point, dp, sim_params
             );
