@@ -21,14 +21,14 @@ __global__ void w_init_kernel(double *w, SimulationParams *sim_params) {
         w[threadId] = 0;
         return;
     }
-//    w[threadId] = mu(xi1, xi2, sim_params) * theta * exp(-theta);
-    if (xi2 < 0.0) {
-        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
-        w[threadId] = 0.0;
-    } else {
-        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
-        w[threadId] = 0.0;
-    }
+    w[threadId] = mu(xi1, xi2, sim_params) * theta * exp(-theta);
+//    if (xi2 < 0.0) {
+//        w[threadId] = -mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+//        w[threadId] = 0.0;
+//    } else {
+//        w[threadId] = mu(xi1, xi2, sim_params) * theta / (1 + theta * theta);
+//        w[threadId] = 0.0;
+//    }
 }
 
 
