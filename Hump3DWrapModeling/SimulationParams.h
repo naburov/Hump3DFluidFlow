@@ -5,10 +5,10 @@
 #ifndef HUMP3DFLUIDFLOW_SIMULATIONPARAMS_H
 #define HUMP3DFLUIDFLOW_SIMULATIONPARAMS_H
 
-struct SimulationParams{
-    const int dims[3];
+struct SimulationParams {
+    const int    dims[3];
     const double mins[3], deltas[3];
-    const double alpha, beta, A, timeStep;
+    const double alpha, beta, A, timeStep, x0;
 };
 
 

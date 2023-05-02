@@ -49,9 +49,72 @@ void print_min_max_values(const double *arr, const std::string &name, Simulation
               << *std::min_element(s.begin(), s.end()) << std::endl;
 }
 
+void export_du_dtheta(const std::string &filename, double *U, SimulationParams params) {
+
+    vtkNew<vtkStructuredGrid>       sgrid;
+    vtkSmartPointer<vtkPoints>      points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> u      = vtkSmartPointer<vtkDoubleArray>::New();
+    u->SetName("u");
+    u->SetNumberOfComponents(3);
+
+    for (int i = 0; i < params.dims[0]; ++i) {
+        for (int k = 0; k < params.dims[2]; ++k) {
+            auto   lin_index_1 = indexof(i, 0, k, &params);
+            auto   lin_index_2 = indexof(i, 1, k, &params);
+            double xi1         = params.mins[0] + params.deltas[0] * i;
+            double xi2         = params.mins[2] + params.deltas[2] * k;
+            double theta       = params.mins[1];
+            auto   derivative  = (U[lin_index_2] - U[lin_index_1]) / params.deltas[1];
+            points->InsertNextPoint(xi1, theta + mu(xi1, xi2, &params), xi2);
+            u->InsertNextTuple3(derivative, 0, 0);
+        }
+    }
+
+    sgrid->SetDimensions(params.dims[0], 1, params.dims[2]);
+    sgrid->GetPointData()->SetVectors(u);
+    sgrid->SetPoints(points);
+
+    vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+                                                        vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+    writer->SetFileName(filename.c_str());
+    writer->SetInputData(sgrid);
+    writer->Write();
+}
+
+void export_dp_dx(const std::string &filename, double *V, SimulationParams params) {
+    vtkNew<vtkStructuredGrid>       dpgrid;
+    vtkSmartPointer<vtkPoints>      points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkDoubleArray> u      = vtkSmartPointer<vtkDoubleArray>::New();
+    u->SetName("u");
+    u->SetNumberOfComponents(3);
+
+    for (int i = 0; i < params.dims[0]; ++i) {
+        for (int k = 0; k < params.dims[2]; ++k) {
+            auto   lin_index = indexof((unsigned int) i, (unsigned int) params.dims[1] - 1, (unsigned int) k, &params);
+            double xi1       = params.mins[0] + params.deltas[0] * i;
+            double xi2       = params.mins[2] + params.deltas[2] * k;
+            double theta     = params.mins[1] + (params.dims[1] - 1) * params.deltas[1];
+            auto   dp        = -V[lin_index] * c(&params);
+            points->InsertNextPoint(xi1, theta + mu(xi1, xi2, &params), xi2);
+            u->InsertNextTuple3(dp, 0, 0);
+        }
+    }
+
+    dpgrid->SetDimensions(params.dims[0], 1, params.dims[2]);
+    dpgrid->GetPointData()->SetVectors(u);
+    dpgrid->SetPoints(points);
+
+    vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+                                                        vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+    writer->SetFileName(filename.c_str());
+    writer->SetInputData(dpgrid);
+    writer->Write();
+}
+
 void export_grid(const std::string &filename, SimulationParams params) {
     vtkNew<vtkStructuredGrid>  sgrid;
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+
 
     int      id = 0;
     for (int i  = 0; i < params.dims[0]; ++i) {
@@ -67,7 +130,7 @@ void export_grid(const std::string &filename, SimulationParams params) {
     }
 
     //std::cout << id << std::endl;
-    sgrid->SetDimensions(params.dims[0], 1, params.dims[1]);
+    sgrid->SetDimensions(params.dims[0], 1, params.dims[2]);
     sgrid->SetPoints(points);
 
     vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
@@ -180,8 +243,6 @@ void export_vector_field(const std::string &filename, double *U, double *V, doub
     vtkNew<vtkStructuredGrid>       sgrid;
     vtkSmartPointer<vtkPoints>      points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkDoubleArray> u      = vtkSmartPointer<vtkDoubleArray>::New();
-
-    int id = 0;
     u->SetName("u");
     u->SetNumberOfComponents(3);
 
@@ -193,7 +254,6 @@ void export_vector_field(const std::string &filename, double *U, double *V, doub
 
         points->InsertNextPoint(xi1, theta + mu(xi1, xi2, &params), xi2);
         u->InsertNextTuple3(U[i], V[i], W[i]);
-        id++;
     }
     //std::cout << id << std::endl;
     sgrid->SetDimensions(params.dims[0], params.dims[2], params.dims[1]);

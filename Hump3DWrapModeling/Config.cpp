@@ -70,6 +70,12 @@ std::vector<int> Config::get_saving_params() {
     return std::vector<int>({save_every, print_every});
 }
 
+std::vector<double> Config::get_hump_center() {
+    auto xi1 = std::stod(params.find("x0")->second);
+    auto xi2 = std::stod(params.find("z0")->second);
+    return std::vector<double>({xi1, xi2});
+}
+
 functions Config::get_hump_function() {
     return functions::tanh_;
 }

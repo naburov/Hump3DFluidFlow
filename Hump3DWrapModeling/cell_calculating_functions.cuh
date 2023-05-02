@@ -9,6 +9,8 @@
 
 __device__ double mu(double xi1, double xi2, SimulationParams *params);
 
+__device__  double c(SimulationParams *params);
+
 __device__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params);
 
 __device__ double relaxed_derivative(double a, double derivative_left, double derivative_right);
@@ -20,7 +22,8 @@ __device__ double
 H_point(Stencil3D *__restrict__ U, SimulationParams *params);
 
 __device__ double
-H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, double dp, SimulationParams *params);
+H_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, double dp,
+        SimulationParams *params);
 
 __device__ double
 W_point(Stencil3D *__restrict__ H, Stencil3D *__restrict__ W, Stencil3D *__restrict__ V, SimulationParams *params);

@@ -84,6 +84,7 @@ void process_one_config_cuda(const char *cnf_path) {
 
     auto t_sizes = cnf.get_grid_sizes();
 
+    auto center_coords = cnf.get_hump_center();
 
     const double time_step = cnf.get_timestep();
 
@@ -100,7 +101,8 @@ void process_one_config_cuda(const char *cnf_path) {
             func_params[0],
             func_params[1],
             cnf.get_hump_height(),
-            time_step
+            time_step,
+            center_coords[0]
     };
 
     auto t_params    = cnf.get_saving_params();
@@ -338,6 +340,14 @@ void process_one_config_cuda(const char *cnf_path) {
             ss.str(std::string());
             ss << filename << std::setfill('0') << std::setw(5) << it_count << ".vts";
             export_vector_field(ss.str(), U, V, W, sim_params);
+
+            ss.str(std::string());
+            ss << filename << "_dpdx_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+            export_dp_dx(ss.str(), V, sim_params);
+
+            ss.str(std::string());
+            ss << filename << "_dudtheta_" << std::setfill('0') << std::setw(5) << it_count << ".vts";
+            export_du_dtheta(ss.str(), U, sim_params);
         }
 
         err = cudaGetLastError();

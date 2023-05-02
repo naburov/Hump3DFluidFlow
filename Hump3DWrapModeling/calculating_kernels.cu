@@ -61,13 +61,13 @@ __global__ void h_kernel(const double *__restrict__ u, double *h, SimulationPara
         arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         auto xi1 = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = c * mu(xi1, xi2, sim_params);
+        h[linear_index] = c(sim_params) * mu(xi1, xi2, sim_params);
         return;
     }
     if (arr_ids.y == 0) {
         auto xi1        = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2        = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = -c * mu(xi1, xi2, sim_params);
+        h[linear_index] = -c(sim_params) * mu(xi1, xi2, sim_params);
 
         return;
     }
@@ -100,13 +100,13 @@ h_kernel(const double *__restrict__ old_h, const double *__restrict__ old_w, con
         arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
         auto xi1 = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2 = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = c * mu(xi1, xi2, sim_params);;
+        h[linear_index] = c(sim_params) * mu(xi1, xi2, sim_params);;
         return;
     }
     if (arr_ids.y == 0) {
         auto xi1        = sim_params->mins[0] + arr_ids.x * sim_params->deltas[0];
         auto xi2        = sim_params->mins[2] + arr_ids.z * sim_params->deltas[2];
-        h[linear_index] = -c * mu(xi1, xi2, sim_params);
+        h[linear_index] = -c(sim_params) * mu(xi1, xi2, sim_params);
         return;
     }
     if (arr_ids.y == sim_params->dims[1] - 1) {
@@ -139,7 +139,7 @@ __global__ void u_kernel(const double *__restrict__ h, double *u, SimulationPara
     auto linear_index = indexof(arr_ids.x, arr_ids.y, arr_ids.z, sim_params);
     if (arr_ids.x == 0 || arr_ids.x == sim_params->dims[0] - 1 ||
         arr_ids.z == 0 || arr_ids.z == sim_params->dims[2] - 1) {
-        u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c;
+        u[linear_index] = (sim_params->mins[1] + arr_ids.y * sim_params->deltas[1]) * c(sim_params);
         return;
     }
     if (arr_ids.y == 0) {
@@ -157,7 +157,7 @@ __global__ void u_kernel(const double *__restrict__ h, double *u, SimulationPara
 
     if (arr_ids.y == sim_params->dims[1] - 2) {
         auto bounding_ids = indexof(arr_ids.x, arr_ids.y + 1, arr_ids.z, sim_params);
-        u[bounding_ids] = u[linear_index] + c * sim_params->deltas[1];
+        u[bounding_ids] = u[linear_index] + c(sim_params) * sim_params->deltas[1];
     }
 }
 

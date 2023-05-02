@@ -41,6 +41,8 @@ public:
     Config(const std::string &config_filename);
 
     void print();
+
+    std::vector<double> get_hump_center();
 };
 
 
