@@ -27,17 +27,25 @@ __device__ __host__ double c(SimulationParams *params) {
 
 // exponential
 __device__ __host__ double mu(double xi1, double xi2, SimulationParams *params) {
-    return params->A * exp(-pow(xi1, 2.0) * params->alpha
-                           - pow(xi2, 2.0) * params->beta);
+//  f[x_, y_]:= 3 * (Exp[-0.25 *(x + 1)^2 -(y + 1)^2] + Exp[-0.25*(x - 1)^2 -(y - 1)^2] )
+    return params->A * (exp(-pow(xi1 + 1., 2.0) * params->alpha
+                            - pow(xi2 + 1., 2.0) * params->beta) +
+                        exp(-pow(xi1 - 1., 2.0) * params->alpha
+                            - pow(xi2 - 1., 2.0) * params->beta));
 }
 
 __device__ __host__ double mu_derivative(double xi1, double xi2, int dim, SimulationParams *params) {
-    if (dim == 0)
-        return -2. * params->A * xi1 * params->alpha * exp(-pow(xi1, 2.0) * params->alpha
-                                                           - pow(xi2, 2.0) * params->beta);
-    else
-        return -2. * params->A * xi2 * params->beta * exp(-pow(xi1, 2.0) * params->alpha
-                                                          - pow(xi2, 2.0) * params->beta);
+
+    if (dim == 0) {
+        return -params->A * 2 * params->alpha * (exp(-pow(xi1 - 1, 2.0) * params->alpha
+                                                     - pow(xi2 - 1, 2.0) * params->beta) * (xi1 - 1) +
+                                                 exp(-pow(xi1 + 1, 2.0) * params->alpha
+                                                     - pow(xi2 + 1, 2.0) * params->beta) * (xi1 + 1));
+    } else
+        return -params->A * 2 * params->beta * (exp(-pow(xi1 - 1, 2.0) * params->alpha
+                                                    - pow(xi2 - 1, 2.0) * params->beta) * (xi2 - 1) +
+                                                exp(-pow(xi1 + 1, 2.0) * params->alpha
+                                                    - pow(xi2 + 1, 2.0) * params->beta) * (xi2 + 1));
 }
 
 __device__ double
